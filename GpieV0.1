@@ -1,0 +1,130 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+interface IGFLO {
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function burn(uint256 amount) external;
+    function balanceOf(address account) external view returns (uint256);
+}
+
+contract PIECore {
+    enum Path { None, Sovereign, Reformer, Praxis }
+
+    struct Identity {
+        uint256 xp;
+        Path path;
+        uint8 tier;
+    }
+
+    mapping(address => Identity) public identities;
+    IGFLO public gfloToken;
+    address public owner;
+    mapping(address => bool) public authorizedCallers;
+
+    // Konstansok (egységesítve)
+    uint256 public constant REFORMER_XP_REQUIREMENT = 1000;
+    uint256 public constant PRAXIS_XP_REQUIREMENT = 5000;
+    uint256 public constant REFORMER_BURN_AMOUNT = 5000 * 10**18;   // 5 000 GFLO
+    uint256 public constant PRAXIS_BURN_AMOUNT = 10000 * 10**18;    // 10 000 GFLO
+
+    event PathChosen(address indexed user, Path path);
+    event XPGained(address indexed user, uint256 amount);
+    event TierUpgraded(address indexed user, uint8 newTier);
+    event CommitmentBurned(address indexed user, uint256 amount);
+
+    constructor(address _gfloAddress) {
+        gfloToken = IGFLO(_gfloAddress);
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not owner");
+        _;
+    }
+
+    modifier onlyAuthorized() {
+        require(authorizedCallers[msg.sender] || msg.sender == owner, "Not authorized");
+        _;
+    }
+
+    // === Admin ===
+    function setAuthorizedCaller(address caller, bool status) external onlyOwner {
+        authorizedCallers[caller] = status;
+    }
+
+    // === Identity létrehozás ===
+    function choosePath(Path _path) external {
+        require(_path != Path.None, "Invalid path");
+        require(identities[msg.sender].path == Path.None, "Already chosen");
+
+        identities[msg.sender].path = _path;
+        identities[msg.sender].tier = 0;
+
+        emit PathChosen(msg.sender, _path);
+    }
+
+    // === XP kezelés ===
+    // Csak authorized hívók (backend) adhatnak XP-t
+    function addXP(address user, uint256 amount) external onlyAuthorized {
+        require(identities[user].path != Path.None, "User has no path");
+        identities[user].xp += amount;
+        emit XPGained(user, amount);
+    }
+
+    // === Upgrade-ek (commitment burn = pecsét) ===
+    function upgradeToReformer() external {
+        Identity storage user = identities[msg.sender];
+        require(user.path == Path.Sovereign, "Must be Sovereign first");
+        require(user.xp >= REFORMER_XP_REQUIREMENT, "Insufficient XP");
+
+        require(
+            gfloToken.transferFrom(msg.sender, address(this), REFORMER_BURN_AMOUNT),
+            "Transfer failed"
+        );
+        gfloToken.burn(REFORMER_BURN_AMOUNT);
+
+        user.path = Path.Reformer;
+        user.tier = 1;
+
+        emit CommitmentBurned(msg.sender, REFORMER_BURN_AMOUNT);
+        emit TierUpgraded(msg.sender, 1);
+        emit PathChosen(msg.sender, Path.Reformer);
+    }
+
+    function upgradeToPraxis() external {
+        Identity storage user = identities[msg.sender];
+        require(user.path == Path.Reformer, "Must be Reformer first");
+        require(user.xp >= PRAXIS_XP_REQUIREMENT, "Insufficient XP");
+
+        require(
+            gfloToken.transferFrom(msg.sender, address(this), PRAXIS_BURN_AMOUNT),
+            "Transfer failed"
+        );
+        gfloToken.burn(PRAXIS_BURN_AMOUNT);
+
+        user.path = Path.Praxis;
+        user.tier = 2;
+
+        emit CommitmentBurned(msg.sender, PRAXIS_BURN_AMOUNT);
+        emit TierUpgraded(msg.sender, 2);
+        emit PathChosen(msg.sender, Path.Praxis);
+    }
+
+    // === View függvények ===
+    function getIdentity(address user) external view returns (
+        uint256 xp,
+        Path path,
+        uint8 tier
+    ) {
+        Identity memory id = identities[user];
+        return (id.xp, id.path, id.tier);
+    }
+
+    function getXP(address user) external view returns (uint256) {
+        return identities[user].xp;
+    }
+
+    function getTier(address user) external view returns (uint8) {
+        return identities[user].tier;
+    }
+}
