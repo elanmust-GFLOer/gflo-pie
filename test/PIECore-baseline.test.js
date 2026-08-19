@@ -225,10 +225,7 @@ describe("PIECore Baseline - Security & Functionality", function () {
     });
 
     it("Should reject if insufficient XP", async function () {
-      // user1 only has 1000 XP (already set in beforeEach)
-      // Should have SOVEREIGN_TIER1_XP = 1000, so this should pass
-      // Let's test with insufficient first
-      
+      // Create new user with insufficient XP
       const user3Sovereign = user3;
       await pieCore.connect(user3Sovereign).choosePath(1);
       await pieCore.connect(authorized).addXP(user3Sovereign.address, 500); // Insufficient
@@ -250,14 +247,17 @@ describe("PIECore Baseline - Security & Functionality", function () {
 
     it("Should reject if insufficient GFLO balance", async function () {
       // Create new user with no tokens
-      const poorUser = user3;
+      const poorUser = user2;
       await pieCore.connect(poorUser).choosePath(1);
       await pieCore.connect(authorized).addXP(poorUser.address, 1000);
       
       const burnAmount = await pieCore.REFORMER_BURN_AMOUNT();
       await mockGFLO.connect(poorUser).approve(pieCore.getAddress(), burnAmount);
       
-      // poorUser has no balance
+      // Transfer out balance
+      const balance = await mockGFLO.balanceOf(poorUser.address);
+      await mockGFLO.connect(poorUser).transfer(owner.address, balance);
+      
       await expect(pieCore.connect(poorUser).upgradeToReformer())
         .to.be.revertedWith("Transfer failed");
     });
@@ -422,13 +422,12 @@ describe("PIECore Baseline - Security & Functionality", function () {
         .withArgs(user1.address, 100);
     });
 
-    it("Should emit TierUpgraded on path transition", async function () {
+    it("Should emit CommitmentBurned on path transition", async function () {
       await pieCore.connect(user1).choosePath(1);
       await pieCore.connect(authorized).addXP(user1.address, 1000);
       const reformerBurn = await pieCore.REFORMER_BURN_AMOUNT();
       await mockGFLO.connect(user1).approve(pieCore.getAddress(), reformerBurn);
       
-      // Note: current contract doesn't emit TierUpgraded, only CommitmentBurned and PathChosen
       const tx = await pieCore.connect(user1).upgradeToReformer();
       await expect(tx)
         .to.emit(pieCore, "CommitmentBurned");
