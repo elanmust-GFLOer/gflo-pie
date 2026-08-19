@@ -137,7 +137,6 @@ describe("PIECore Baseline - Security & Functionality", function () {
       
       // This should NOT be allowed - users should not control their own XP
       expect(identity.xp).to.equal(1000000);
-      console.log("⚠️  SECURITY ISSUE: User1 arbitrarily set their XP to 1,000,000");
     });
 
     it("SECURITY FINDING: User cannot manipulate another user's XP via gainXP()", async function () {
@@ -151,7 +150,6 @@ describe("PIECore Baseline - Security & Functionality", function () {
       // User2's XP unchanged
       expect(xpAfter).to.equal(xpBefore);
       expect((await pieCore.identities(user1.address)).xp).to.equal(9999999);
-      console.log("⚠️  SECURITY ISSUE: User1 arbitrary XP = 9,999,999");
     });
 
     it("Should demonstrate XP inflation scenario", async function () {
@@ -162,7 +160,6 @@ describe("PIECore Baseline - Security & Functionality", function () {
       
       const identity = await pieCore.identities(user1.address);
       expect(identity.xp).to.equal(1000000); // 10 * 100,000
-      console.log("⚠️  SECURITY ISSUE: User1 XP inflated to 1,000,000 in 10 calls");
     });
   });
 
