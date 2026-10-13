@@ -1,0 +1,16 @@
+{
+  "name": "gflo-pie-v02-contract-tests",
+  "private": true,
+  "version": "0.2.0",
+  "scripts": {
+    "test": "hardhat test",
+    "compile": "hardhat compile"
+  },
+  "devDependencies": {
+    "hardhat": "^2.26.3",
+    "@nomicfoundation/hardhat-ethers": "^3.1.0",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
+    "ethers": "^6.14.0",
+    "chai": "^4.5.0"
+  }
+}
