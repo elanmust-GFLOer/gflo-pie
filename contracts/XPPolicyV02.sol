@@ -167,7 +167,13 @@ contract XPPolicyV02 {
         dailyXP[account][dayId] += rule.xpAmount;
         weeklyXP[account][weekId] += rule.xpAmount;
         earnedXP[account] += rule.xpAmount;
-        emit XPAwarded(account, ruleId, eventId, evidenceHash, rule.xpAmount,
+        _emitAward(account, ruleId, eventId, evidenceHash, rule.xpAmount);
+    }
+
+    /// @dev Isolating the event emission reduces stack pressure in awardXP.
+    function _emitAward(address account, bytes32 ruleId, bytes32 eventId,
+        bytes32 evidenceHash, uint16 amount) private {
+        emit XPAwarded(account, ruleId, eventId, evidenceHash, amount,
             earnedXP[account], msg.sender);
     }
 
