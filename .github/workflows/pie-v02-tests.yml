@@ -1,0 +1,36 @@
+name: PIE v0.2 Genesis and Path tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'contracts/**'
+      - 'tests-v02/**'
+      - '.github/workflows/pie-v02-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  genesis-path:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tests-v02
+    steps:
+      - name: Checkout v0.2 branch for manual run, PR ref otherwise
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'feature/pie-core-v0.2' || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify isolated test files
+        run: test -f package.json && test -f hardhat.config.cjs && test -f test/PIECoreV02.identity.cjs
+      - name: Install isolated dependencies
+        run: npm install --no-audit --no-fund
+      - name: Compile contracts
+        run: npx hardhat compile --config hardhat.config.cjs
+      - name: Run Genesis and Path State Machine tests
+        run: npx hardhat test --config hardhat.config.cjs
