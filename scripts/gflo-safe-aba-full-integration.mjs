@@ -122,9 +122,13 @@ await check("Two owners bind Ignition once; repeated binding is refused",async()
  await safeOk("core",core,"bindIgnition",[ignition.toString()]);
  assert.equal((await read("core",core,"ignition"))[0].toLowerCase(),ignition.toString().toLowerCase());
  await fail("core",core,"bindIgnition",[ignition.toString()],relayer);
+ const nonceBefore=(await read("safe",safe,"nonce"))[0];
  const r=await safeExec("core",core,"bindIgnition",[ignition.toString()]);
- assert.ok(!r.exceptionError,"Safe exec itself should return false for target revert");
- assert.equal(abi.safe.decodeFunctionResult("execTransaction",bytesToHex(r.returnValue))[0],false);
+ // Official Safe v1.5.0 reverts the OUTER call on inner failure when
+ // safeTxGas == 0 AND gasPrice == 0 (see Safe.sol execTransaction).
+ assert.ok(r.exceptionError,"Safe must revert on target failure with zero gas settings");
+ assert.equal((await read("safe",safe,"nonce"))[0],nonceBefore,"Safe nonce changed after reverted inner call");
+ assert.equal((await read("core",core,"ignition"))[0].toLowerCase(),ignition.toString().toLowerCase());
 });
 await check("Two owners activate verified canonical policy and unpause Registry",async()=>{
  const codehash=keccak256(bytesToHex(await vm.stateManager.getCode(xp)));
