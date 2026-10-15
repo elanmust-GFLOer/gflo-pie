@@ -58,8 +58,8 @@ async function deploy(name,key,args=[]){
  const address=getCreateAddress({from:sender.address.toString(),nonce:sender.nonce});
  const init="0x"+bytecode[key]+abi[key].encodeDeploy(args).slice(2);
  const r=await transact(name,null,init);
- assert.ok((await vm.stateManager.getCode(sender.address.constructor.fromString?
-   sender.address.constructor.fromString(address):createAddressFromPrivateKey(senders[name].secret))).length>=0);
+ const {createAddressFromString}=await import("@ethereumjs/util");
+ assert.ok((await vm.stateManager.getCode(createAddressFromString(address))).length>0,"deployed runtime missing");
  return {address,result:r};
 }
 async function call(name,key,address,method,args=[],status=1){
@@ -137,7 +137,7 @@ await check("Signed second ignition below Praxis XP threshold reverts without lo
 });
 await check("Signed tx gas, nonce and fee are measurable",async()=>{
  const nonce=(await vm.stateManager.getAccount(senders.alice.address)).nonce;
- assert.equal(nonce,4n); // createIdentity, approve, failed, failed, success, failed: updated below
+ assert.equal(nonce,6n); // identity + approve + two failed + success + threshold failure
 });
 await check("Registry remains canonical while Core genesis XP stays 25",async()=>{
  assert.equal((await read("core",core,"getIdentity",[addr("alice")])).xp,25n);
