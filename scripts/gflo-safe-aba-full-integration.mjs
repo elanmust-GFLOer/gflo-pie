@@ -18,6 +18,22 @@ const official={safe:sf("Safe.sol/Safe.json"),factory:sf("proxies/SafeProxyFacto
 const srcFiles={core:"PIECoreIgnitionV01.sol",xp:"XPPolicyV02.sol",registry:"TrustedXPSourceRegistryV02.sol",token:"GFLOFixedSupplyV01.sol",ignition:"GFLOIgnitionV01.sol"};
 const sources=Object.fromEntries(Object.values(srcFiles).map(f=>[f,{content:execFileSync("git",["show","origin/feature/pie-core-v0.2:contracts/"+f],{cwd:repo,encoding:"utf8"})}]));
 const ozRoot=path.dirname(localRequire.resolve("@openzeppelin/contracts/package.json"));
+// RED TEAM: intentional in-memory source faults, never written to Solidity files.
+const fault=process.env.GFLO_REDTEAM_FAULT;
+if(fault){
+ const mutations={
+  xp_threshold:["GFLOIgnitionV01.sol","uint64 public constant REFORMER_XP = 1000;","uint64 public constant REFORMER_XP = 0;"],
+  skip_burn:["GFLOIgnitionV01.sol","gflo.burnFrom(msg.sender, amount);","// RED TEAM: intentionally skip token burn"],
+  bypass_tier_auth:["PIECoreIgnitionV01.sol","if (msg.sender != ignition || ignition == address(0)) revert NotIgnition();","// RED TEAM: intentionally bypass Tier authorization"]
+ };
+ const mutation=mutations[fault];
+ if(!mutation)throw Error("Unknown redteam mutation: "+fault);
+ const [filename,original,replacement]=mutation;
+ const text=sources[filename].content;
+ if(text.split(original).length!==2)throw Error("Redteam mutation target not uniquely found: "+fault);
+ sources[filename].content=text.replace(original,replacement);
+ console.log("REDTEAM_MUTATION="+fault);
+}
 const out=JSON.parse(solc.compile(JSON.stringify({language:"Solidity",sources,settings:{optimizer:{enabled:true,runs:200},evmVersion:"cancun",outputSelection:{"*":{"*":["abi","evm.bytecode.object"]}}}}),{import:(name)=>{
  try{
   if(!name.startsWith("@openzeppelin/contracts/"))return {error:"Unexpected Solidity import: "+name};
