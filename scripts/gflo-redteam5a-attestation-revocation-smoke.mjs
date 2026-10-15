@@ -9,6 +9,7 @@ import {homedir} from "node:os";
 import {join} from "node:path";
 import {createVM,runTx} from "@ethereumjs/vm";
 import {createLegacyTx} from "@ethereumjs/tx";
+import {createBlock} from "@ethereumjs/block";
 import {Common,Mainnet,Hardfork} from "@ethereumjs/common";
 import {createAccount,createAddressFromPrivateKey,createAddressFromString,hexToBytes,bytesToHex} from "@ethereumjs/util";
 
@@ -46,11 +47,14 @@ for(const [name,key] of Object.entries(keys)){
 }
 const owners=["11","22","33"].map(c=>new Wallet("0x"+c.repeat(32)));
 const TEST_GAS=22000000n,GAS_PRICE=2000000000n;
+let activeTimestamp=1000n;
+const atDay=day=>{ activeTimestamp=BigInt(day)*86400n+1000n; };
 async function tx(name,to,data,status=1){
  const s=senders[name],before=s.nonce;
  const signed=createLegacyTx({nonce:before,gasLimit:TEST_GAS,gasPrice:GAS_PRICE,
    ...(to?{to:to.toString()}:{}),data:hexToBytes(data)},{common}).sign(s.key);
- const out=await runTx(vm,{tx:signed});
+ const block=createBlock({header:{timestamp:activeTimestamp,gasLimit:30000000n}},{common});
+ const out=await runTx(vm,{tx:signed,block});
  assert.equal(Number(out.receipt.status),status,"tx receipt status for "+name+" nonce "+before);
  assert.ok(out.totalGasSpent>21000n,"gas must be accounted");
  s.nonce++;
@@ -201,7 +205,7 @@ await check("Pending XP cannot unlock Tier 1 or increase canonical XP",async()=>
 await check("Early finalize fails; expiry of attestation does not override 3-day finalization",async()=>{
  await send("outsider","xp",xp,"finalize",[claimId],0);
  atDay(3);
- await send("outsider","xp",xp,"finalize",[globalThis.claimId]);
+ await send("outsider","xp",xp,"finalize",[claimId]);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),1000n);
  assert.equal(await read("registry",registry,"totalXP",[account]),1025n);
 });
@@ -213,7 +217,7 @@ await check("Finalized claim permits real signed Tier 1 burn and effective tier 
 });
 await check("Safe 2/3 revokes valid grant: effective Tier falls, achieved Tier remains",async()=>{
  const before=await read("token",token,"totalSupply");
- await admin("xp",xp,"revoke",[globalThis.claimId,id("RT5_FRAUD_DECISION")]);
+ await admin("xp",xp,"revoke",[claimId,id("RT5_FRAUD_DECISION")]);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),0n);
  assert.equal(await read("registry",registry,"totalXP",[account]),25n);
  assert.equal((await read("core",core,"getIdentity",[account])).tier,1n);
@@ -223,8 +227,12 @@ await check("Safe 2/3 revokes valid grant: effective Tier falls, achieved Tier r
 });
 await check("Replay after revocation fails and paused Registry fails closed",async()=>{
  const sig=await proofSignature();
- await send("verifier","xp",xp,"submit",[proof,attestor,sig],0);
- await send("outsider","xp",xp,"finalize",[globalThis.claimId],0);
+ // A fresh, currently valid signature is intentionally reused with the
+ // original event/evidence nullifiers, so expiry cannot mask replay protection.
+ const replayProof=[account,rule,event,evidence,778n,BigInt(activeTimestamp),BigInt(activeTimestamp)+86400n];
+ const replaySig=await proofSignature(replayProof);
+ await send("verifier","xp",xp,"submit",[replayProof,attestor,replaySig],0);
+ await send("outsider","xp",xp,"finalize",[claimId],0);
  await admin("registry",registry,"setPaused",[true]);
  await send("outsider","gate",gate,"requireEffectiveTier",[account,1],0);
  assert.equal((await read("core",core,"getIdentity",[account])).tier,1n);
