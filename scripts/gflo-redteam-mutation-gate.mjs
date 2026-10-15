@@ -9,9 +9,9 @@ const folder=dirname(fileURLToPath(import.meta.url));
 const target=join(folder,"gflo-safe-full.mjs");
 const scenarios=[
  {name:"baseline",env:null,expected:null},
- {name:"xp_threshold",env:"xp_threshold",expected:"6/11 Genesis 25 XP and insufficient XP prohibit burn or Tier upgrade"},
- {name:"skip_burn",env:"skip_burn",expected:"9/11 Actual OpenZeppelin burnFrom destroys exactly one GFLO and advances Tier 1"},
- {name:"bypass_tier_auth",env:"bypass_tier_auth",expected:null}
+ {name:"xp_threshold",env:"xp_threshold",expected:"Expected revert: ignition.ignite"},
+ {name:"skip_burn",env:"skip_burn",expected:"ignition.ignite reverted:"},
+ {name:"bypass_tier_auth",env:"bypass_tier_auth",expected:"SECURITY_ASSERT_TIER_AUTH"}
 ];
 let killed=0,survived=0,invalid=0;
 for(const test of scenarios){
@@ -32,7 +32,9 @@ for(const test of scenarios){
  const assertionFail=/AssertionError|Expected revert|unexpectedly passed|unexpectedly reverted|reverted:/.test(output);
  const compileFail=/ParserError:|TypeError:|DeclarationError:|CompilerError:|Cannot find module|ERR_MODULE_NOT_FOUND/.test(output);
  if(p.error||compileFail){invalid++;console.log("⚠️ INVALID "+test.name+": infrastructure/compiler failure");console.log(output.slice(-650));continue;}
- if(p.status!==0 && assertionFail){
+ // The failure must identify the security oracle associated with THIS mutation.
+ // An unrelated exception is not evidence that the mutation was detected.
+ if(p.status!==0 && assertionFail && output.includes(test.expected)){
   killed++;console.log("🐻❌ KILLED "+test.name+" — security assertion rejected mutated behavior");
   console.log(output.slice(-420).replace(/\n+/g," ").slice(-420));
  }else if(baselinePass){
