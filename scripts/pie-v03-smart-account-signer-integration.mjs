@@ -50,6 +50,10 @@ const core=await deploy("core");
 const registry=await deploy("registry",[core.toString(),init.toString()]);
 const quorum=await deploy("quorum",[registry.toString(),[a.toString(),b.toString(),c.toString()]]);
 const smart=await deploy("smart",[controller.toString(),quorum.toString()]);
+// Registry must explicitly nominate Quorum before Quorum can call setPaused().
+await good("registry",registry,"proposeGovernance",[quorum.toString()],init);
+await good("quorum",quorum,"acceptRegistryGovernance",[],a);
+assert.equal((await good("registry",registry,"governance"))[0].toLowerCase(),quorum.toString().toLowerCase());
 await check("Smart-account signer has pinned controller and quorum",async()=>{
  assert.equal((await good("smart",smart,"owner"))[0].toLowerCase(),controller.toString().toLowerCase());
  assert.equal((await good("smart",smart,"quorum"))[0].toLowerCase(),quorum.toString().toLowerCase());
