@@ -280,23 +280,38 @@ await check("Unauthorized attestor and verifier cannot submit valid signed evide
  await guardRejected(freshProof,attackerSig,attacker.address);
 });
 let freshClaimId;
+// Public struct mapping getters return SEVEN ABI values, not one tuple.
+// Read the named status field from the full decoded result.
+async function readGrantStatus(claim){
+ const viewer=createAddressFromString("0x"+"fe".repeat(20));
+ await vm.stateManager.checkpoint();
+ try{
+  const res=(await vm.evm.runCall({
+   caller:viewer,to:createAddressFromString(xp),isStatic:true,gasLimit:2000000n,
+   data:hexToBytes(abi.xp.encodeFunctionData("grants",[claim]))
+  })).execResult;
+  if(res.exceptionError)throw Error("grants read failed: "+res.exceptionError.error);
+  const decoded=abi.xp.decodeFunctionResult("grants",bytesToHex(res.returnValue));
+  assert.equal(decoded.length,7,"Unexpected XPPolicyV03 Grant getter ABI");
+  return decoded.status;
+ }finally{await vm.stateManager.revert();}
+}
 await check("Valid fresh claim enters PENDING; duplicate evidence is rejected",async()=>{
  const before=await read("registry",registry,"totalXP",[account]);
  const r=await send("verifier","xp",xp,"submit",[freshProof,attestor,freshSig]);
  freshClaimId=await grantFromReceipt(r);
  assert.equal(await read("registry",registry,"totalXP",[account]),before);
  await guardRejected(freshProof);
- const grant=await read("xp",xp,"grants",[freshClaimId]);
- assert.equal(grant.status,1n);
+ assert.equal(await readGrantStatus(freshClaimId),1n);
 });
 await check("Unauthorized revocation fails and keeps PENDING grant unchanged",async()=>{
  await send("outsider","xp",xp,"revoke",[freshClaimId,id("RT5B_FAKE_REASON")],0);
- assert.equal((await read("xp",xp,"grants",[freshClaimId])).status,1n);
+ assert.equal(await readGrantStatus(freshClaimId),1n);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),0n);
 });
 await check("Safe revokes PENDING grant without adding or subtracting XP",async()=>{
  await admin("xp",xp,"revoke",[freshClaimId,id("RT5B_CANCEL_PENDING")]);
- assert.equal((await read("xp",xp,"grants",[freshClaimId])).status,3n);
+ assert.equal(await readGrantStatus(freshClaimId),3n);
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),0n);
  assert.equal(await read("registry",registry,"totalXP",[account]),25n);
 });
@@ -307,7 +322,7 @@ await check("Double revoke/finalize fail and event/evidence remain permanently s
  await send("outsider","xp",xp,"finalize",[freshClaimId],0);
  const replay=[...freshProof];replay[4]=901n;
  await guardRejected(replay,await proofSignature(replay));
- assert.equal((await read("xp",xp,"grants",[freshClaimId])).status,3n);
+ assert.equal(await readGrantStatus(freshClaimId),3n);
 });
 assert.equal(n,N);
 console.log("✅ 15/15 RED TEAM 5B/1 PROOF TAMPER AND REVOCATION CHECKS PASS");
