@@ -161,7 +161,7 @@ await check("Two Safe signers bind ignition and activate canonical registry",asy
  await admin("registry",registry,"activatePolicy");
  await admin("registry",registry,"setPaused",[false]);
  assert.equal(await read("core",core,"ignition"),ignition);
- assert.equal((await read("registry",registry,"activeSource")).policy,xp);
+ assert.equal(await read("registry",registry,"activeSource"),xp);
 });
 await send("alice","core",core,"createIdentity",[3]);
 await check("25 Genesis XP blocks signed ignition without allowance; token stays intact",async()=>{
