@@ -65,14 +65,23 @@ async function deploy(name,key,args=[]){
 async function call(name,key,address,method,args=[],status=1){
  return transact(name,address,abi[key].encodeFunctionData(method,args),status);
 }
+// Direct vm.evm.runCall() is NOT an eth_call; without isolation it may
+// mutate the caller's nonce in EthereumJS. Roll back all exploratory reads.
 async function read(key,address,method,args=[]){
  const {createAddressFromString}=await import("@ethereumjs/util");
- const sender=senders.alice.address;
+ const viewer=createAddressFromString("0x"+"fe".repeat(20));
  const dest=createAddressFromString(address);
- const r=(await vm.evm.runCall({caller:sender,to:dest,gasLimit:2000000n,
- data:hexToBytes(abi[key].encodeFunctionData(method,args))})).execResult;
- if(r.exceptionError)throw Error("view failed "+method);
- return abi[key].decodeFunctionResult(method,bytesToHex(r.returnValue))[0];
+ await vm.stateManager.checkpoint();
+ try {
+  const r=(await vm.evm.runCall({
+   caller:viewer,to:dest,gasLimit:2000000n,isStatic:true,
+   data:hexToBytes(abi[key].encodeFunctionData(method,args))
+  })).execResult;
+  if(r.exceptionError)throw Error("view failed "+method+": "+r.exceptionError.error);
+  return abi[key].decodeFunctionResult(method,bytesToHex(r.returnValue))[0];
+ } finally {
+  await vm.stateManager.revert();
+ }
 }
 const addr=name=>senders[name].address.toString();
 let n=0;const N=8;
@@ -100,6 +109,8 @@ await call("verifier","xp",xp,"awardXP",[addr("alice"),rule,id("tx-event-1"),id(
 await check("Signed deployments, nonce and receipts initialize canonical XP",async()=>{
  assert.equal(await read("registry",registry,"totalXP",[addr("alice")]),1025n);
  assert.equal((await vm.stateManager.getAccount(senders.deployer.address)).nonce,5n);
+ assert.equal((await vm.stateManager.getAccount(senders.alice.address)).nonce,2n,
+  "View checks must not increment signed wallet nonce");
 });
 await check("Failed signed burn has status 0, no emitted logs or state mutation",async()=>{
  await call("admin","token",token,"setMode",[1]);
