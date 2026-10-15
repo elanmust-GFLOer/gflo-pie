@@ -130,22 +130,31 @@ contract XPPolicyV03 is EIP712 {
         bytes32 nonceKey=keccak256(abi.encode(attestor,proof.nonce));
         if(usedEvents[eventKey]||usedEvidence[evidenceKey]||usedProofNonces[nonceKey]) revert Replay();
 
-        uint32 count=claimsPerRule[proof.recipient][proof.ruleId];
-        uint256 dayId=block.timestamp / 1 days;
-        uint256 weekId=block.timestamp / 7 days;
-        if(count>=rule.maxClaims ||
-           uint256(dailyXP[proof.recipient][dayId])+rule.amount>DAILY_CAP ||
-           uint256(weeklyXP[proof.recipient][weekId])+rule.amount>WEEKLY_CAP) revert LimitReached();
+        _reserveQuota(proof.recipient,proof.ruleId,rule.amount,rule.maxClaims);
         claimId=keccak256(abi.encode(digest,attestor));
         if(grants[claimId].status!=Status.NONE) revert Replay();
 
-        usedEvents[eventKey]=true; usedEvidence[evidenceKey]=true; usedProofNonces[nonceKey]=true;
-        claimsPerRule[proof.recipient][proof.ruleId]=count+1;
-        dailyXP[proof.recipient][dayId]+=rule.amount;
-        weeklyXP[proof.recipient][weekId]+=rule.amount;
+        usedEvents[eventKey]=true;
+        usedEvidence[evidenceKey]=true;
+        usedProofNonces[nonceKey]=true;
         uint64 deadline=uint64(block.timestamp+CHALLENGE_PERIOD);
         grants[claimId]=Grant(proof.recipient,proof.ruleId,rule.amount,deadline,msg.sender,attestor,Status.PENDING);
         emit GrantPending(claimId,proof.recipient,attestor,rule.amount,deadline);
+    }
+
+    /// @dev Isolated quota reservation reduces submit() stack pressure.
+    ///      All writes revert atomically if later validation or grant storage fails.
+    function _reserveQuota(address recipient,bytes32 ruleId,uint16 amount,uint32 maxClaims) private {
+        uint32 count=claimsPerRule[recipient][ruleId];
+        uint256 dayId=block.timestamp / 1 days;
+        uint256 weekId=block.timestamp / 7 days;
+        if(count>=maxClaims ||
+           uint256(dailyXP[recipient][dayId])+amount>DAILY_CAP ||
+           uint256(weeklyXP[recipient][weekId])+amount>WEEKLY_CAP) revert LimitReached();
+
+        claimsPerRule[recipient][ruleId]=count+1;
+        dailyXP[recipient][dayId]+=amount;
+        weeklyXP[recipient][weekId]+=amount;
     }
 
     function finalize(bytes32 claimId) external {
