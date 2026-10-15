@@ -238,6 +238,8 @@ await check("Replay after revocation fails and paused Registry fails closed",asy
  assert.equal((await read("core",core,"getIdentity",[account])).tier,1n);
 });
 
+// 5A intentionally leaves Registry paused. Re-enable it via genuine Safe 2/3 first.
+await admin("registry",registry,"setPaused",[false]);
 const freshRule=id("RT5B_FRESH_RULE");
 await admin("xp",xp,"registerRule",[freshRule,1000,5]);
 await admin("xp",xp,"setAttestor",[freshRule,attestor,true]);
