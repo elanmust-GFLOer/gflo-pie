@@ -156,6 +156,14 @@ await check("Two owners activate verified canonical policy and unpause Registry"
 await ok("core",core,"createIdentity",[3],alice);
 await check("Genesis 25 XP and insufficient XP prohibit burn or Tier upgrade",async()=>{
  assert.equal((await read("registry",registry,"totalXP",[alice.toString()]))[0],25n);
+ // RED TEAM security oracle: reject unauthorized DIRECT Core tier mutation.
+ // The exact NotIgnition() error distinguishes authorization from unrelated reverts.
+ const unauthorized=await call("core",core,"upgradeTier",[alice.toString(),1],relayer);
+ assert.ok(unauthorized.exceptionError,"SECURITY_ASSERT_TIER_AUTH: direct unauthorized upgradeTier succeeded");
+ assert.equal(bytesToHex(unauthorized.returnValue).slice(0,10),
+   abi.core.getError("NotIgnition").selector,"SECURITY_ASSERT_TIER_AUTH: expected NotIgnition() selector");
+ assert.equal((await read("core",core,"getIdentity",[alice.toString()]))[0].tier,0n,
+   "SECURITY_ASSERT_TIER_AUTH: failed unauthorized call changed Tier");
  await ok("token",token,"approve",[ignition.toString(),fee],alice);
  await fail("ignition",ignition,"ignite",[],alice);
  assert.equal((await read("token",token,"totalSupply"))[0],supply);
