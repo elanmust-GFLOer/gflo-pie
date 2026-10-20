@@ -71,7 +71,7 @@ Do **not** attach substantive economic privileges or claim public-network securi
 | P0-A signed Tier-2 test consumer / pause-unpause ordering | **CI PASS in dedicated RED TEAM 5C fixture** — 8 added cases on top of 15 baseline, run 39494975013; production consumers and full receipt archival still OPEN |
 | RT5-19 three targeted, compiling mutants | **CI 3 KILLED / 0 SURVIVED / 0 INVALID**, run 39496380124, artifact 12298845667; independent review and wider mutational coverage OPEN |
 | P1-A ERC-1271 local contract signer matrix | **CI PASS**: six added cases, 5D 21/21 incl. 15 baseline, run 39498428774; independent evidence review OPEN |
-| Dependency review/remediation or signed bounded exception | OPEN |
+| P1-B targeted transitive tmp/ws advisory remediation | **CI PASS** on clean locked npm; tmp 0.2.7, ws 8.21.0, run 39499577547 and Genesis 39499577548. Broader dependency audit and independent review still OPEN |
 | Real-world OctoPush proof-source assurance | OPEN |
 | Independent audit/release approval | OPEN |
 
@@ -121,3 +121,22 @@ The final Verified Contribution Core security gate remains **OPEN** pending RT5-
 - Limits: the signer mock deliberately has a fixture controller and is **not** a deployed smart wallet, passkey verifier or organizationally independent evidence source. Contract signer success verifies the return value, not real-world activity. High gas spend may deny an individual claim. No public network transaction or new authentication product is proven.
 
 Remaining security gates: pinned transitive dependency advisories, real-world OctoPush evidence-source assurance, exhaustive economic consumer inventory, independent Codex review and explicit merge/release authorization.
+
+## P1-B — targeted dependency remediation evidence (2026-10-20)
+
+Root cause paths from the *previous* committed isolated lockfile:
+
+- `solc@0.8.34 → tmp@0.0.33` (known symlink/path handling advisories).
+- `ethers@6.15.0 → ws@8.17.1` (published memory-handling / denial-of-service advisories).
+
+Remediation retained the existing exact top-level Solidity, EthereumJS, ethers, OpenZeppelin and Safe fixture versions. It inserted npm overrides for `tmp@0.2.7` and `ws@8.21.0`, generated a reviewed candidate lockfile in separate **non-acceptance** bootstrap workflow [39499454807](https://github.com/elanmust-GFLOer/gflo-pie/actions/runs/39499454807), and committed the candidate package JSON + complete npm lockfile.
+
+- Updated isolated package: `tests-redteam5b/package.json`; `overrides = {"tmp":"0.2.7","ws":"8.21.0"}`.
+- Updated lock: `tests-redteam5b/package-lock.json`; resolved `tmp@0.2.7`, `ws@8.21.0`, SHA-512 integrity metadata, 37 package entries.
+- Main CI [39499577547](https://github.com/elanmust-GFLOer/gflo-pie/actions/runs/39499577547): **SUCCESS** using committed `npm ci --ignore-scripts --no-audit --no-fund`; 5B/1=15/15, 5B/2=15/15, 5C=23/23, RT5-19=3 KILLED/0 SURVIVED/0 INVALID, ERC-1271 5D=21/21. GitHub artifact ID `12299476261`, GitHub-reported ZIP SHA-256 `beba831891107089443142bbcf89ad37cb0660c4f177f1d2f4231bfffeb23e38`.
+- Separate [Genesis/Path CI 39499577548](https://github.com/elanmust-GFLOer/gflo-pie/actions/runs/39499577548): **SUCCESS**, 15/15; artifact ID `12299102756`, GitHub-reported ZIP SHA-256 `7486ca4c7537029b52181954427e95dd3adc925e8ec824b696d39a5662f0a6ff`.
+- The one-time non-acceptance bootstrap workflow was removed after both strict CI jobs completed.
+
+Limitations: the updated lockfile and regression CI show that the targeted updates install and run successfully; they are **not** a full vulnerability scan, supply-chain attestation or claim that all transient advisories were removed. A PR review must independently verify exact final-head checkout, package-lock hash, dependency resolution, current advisories, ABI/bytecode test coverage and ZIP digests. The subsequent cleanup/documentation commits require fresh exact-head checks before the full gate receives signoff.
+
+**P1-B scope: targeted patches + regression evidence PASS. Full GFLO Verified Contribution Core release-security gate remains OPEN.**
