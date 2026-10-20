@@ -82,7 +82,16 @@ jobs:
           AUDIT_ARTIFACT_ID: ${{ steps.evidence.outputs.artifact-id }}
           AUDIT_ARTIFACT_DIGEST: ${{ steps.evidence.outputs.artifact-digest }}
         run: |
-          gh api "repos/elanmust-GFLOer/gflo-pie/actions/artifacts/$AUDIT_ARTIFACT_ID/zip" > uploaded-audit.zip
+          for attempt in 1 2 3; do
+            if gh api "repos/elanmust-GFLOer/gflo-pie/actions/artifacts/$AUDIT_ARTIFACT_ID/zip" > uploaded-audit.zip; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Uploaded artifact could not be downloaded after 3 attempts" >&2
+              exit 1
+            fi
+            sleep "$((attempt * 2))"
+          done
           python3 - <<'PY'
           import hashlib, io, json, os, pathlib, zipfile
           data = pathlib.Path('uploaded-audit.zip').read_bytes()
