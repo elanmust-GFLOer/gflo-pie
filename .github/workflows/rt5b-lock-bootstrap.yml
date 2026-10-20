@@ -27,6 +27,12 @@ jobs:
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
           test -s package-lock.json
           sha256sum package-lock.json
+      - name: Emit candidate lockfile for exact commit (public dependency metadata only)
+        run: |
+          echo 'GFLO_LOCK_BASE64_BEGIN'
+          base64 -w0 package-lock.json
+          echo
+          echo 'GFLO_LOCK_BASE64_END'
       - name: Upload candidate lockfile
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
