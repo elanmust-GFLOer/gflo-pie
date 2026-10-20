@@ -64,6 +64,7 @@ jobs:
                   print('CURRENT_EVIDENCE_END ' + name)
           PY
       - name: Upload read-only evidence even if inconclusive
+        id: evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -73,3 +74,33 @@ jobs:
             tests-v02/audit-run.log
           if-no-files-found: error
           retention-days: 90
+
+      - name: Download and verify the actual uploaded artifact
+        if: always() && steps.evidence.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUDIT_ARTIFACT_ID: ${{ steps.evidence.outputs.artifact-id }}
+          AUDIT_ARTIFACT_DIGEST: ${{ steps.evidence.outputs.artifact-digest }}
+        run: |
+          gh api "repos/elanmust-GFLOer/gflo-pie/actions/artifacts/$AUDIT_ARTIFACT_ID/zip" > uploaded-audit.zip
+          python3 - <<'PY'
+          import hashlib, io, json, os, pathlib, zipfile
+          data = pathlib.Path('uploaded-audit.zip').read_bytes()
+          actual = hashlib.sha256(data).hexdigest()
+          assert actual == os.environ['AUDIT_ARTIFACT_DIGEST'], 'Uploaded ZIP digest mismatch'
+          print('UPLOADED_ARTIFACT_ID=' + os.environ['AUDIT_ARTIFACT_ID'])
+          print('UPLOADED_ARTIFACT_SHA256=' + actual)
+          with zipfile.ZipFile(io.BytesIO(data)) as z:
+              manifest = z.read('audit-output/sha256.txt').decode()
+              for line in manifest.splitlines():
+                  digest, name = line.split()
+                  body = z.read('audit-output/' + name)
+                  assert hashlib.sha256(body).hexdigest() == digest, 'Member digest mismatch: ' + name
+                  assert body == (pathlib.Path('audit-output') / name).read_bytes(), 'Uploaded/local evidence differs'
+                  print('UPLOADED_EVIDENCE_BEGIN ' + name)
+                  print(body.decode())
+                  print('UPLOADED_EVIDENCE_END ' + name)
+              audit = json.loads(z.read('audit-output/audit.json'))
+              assert audit['commit'] == os.environ['GITHUB_SHA'], 'Artifact commit differs'
+          print('UPLOADED_ARTIFACT_VERIFICATION=PASS')
+          PY

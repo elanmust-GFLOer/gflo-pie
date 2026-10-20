@@ -8,7 +8,6 @@ const contracts={PRIMARY_LEGACY:{address:'0x9CF55d0b9D61Dc28EF3cb10765CF4b861Cd0
 const endpoints=['https://ethereum-sepolia-rpc.publicnode.com','https://rpc.sepolia.org','https://sepolia.drpc.org'];
 const iface=new Interface(['function identities(address) view returns(uint256 xp,uint8 path,uint8 tier)','function getIdentity(address) view returns(uint256 xp,uint8 path,uint8 tier,uint256 nextThreshold)','function getXP(address) view returns(uint256)','function getTier(address) view returns(uint8)','function getPath(address) view returns(uint8)']);
 const methods=['identities','getIdentity','getXP','getTier','getPath'];
-const evTopics=['PathChosen(address,uint8)','XPGained(address,uint256)','TierUpgraded(address,uint8)'].map(id);
 const outDir=path.resolve(__dirname,'../audit-output');
 const report={schema:'gflo-sepolia-pie-legacy-readonly-v2',commit:process.env.GITHUB_SHA||null,startedAt:new Date().toISOString(),network:'Ethereum Sepolia',expectedChainId:11155111,accounts:subjects,attempts:[],endpoint:null,anchor:null,contracts:{},conclusion:'INCONCLUSIVE',warnings:['Event coverage trusts the RPC provider; receipt checks are not a cryptographic proof against omitted whole transactions.','PASS is identity-state corroboration, not contract security or migration authorization.']};
 
@@ -105,10 +104,47 @@ function replayEvents(events,baseline,view){
  const mismatches=['xp','path','tier'].filter(k=>derived[k]!==view[k]);
  return{baseline,derived,view,counts,uncertainties,mismatches,status:uncertainties.length?'INCONCLUSIVE':mismatches.length?'FAIL':'PASS'};
 }
+
+async function selectHistoryProvider(current,name,contract,entry,block,evidence){
+ const candidates=[...new Set([current,...endpoints,'https://sepolia.gateway.tenderly.co','https://ethereum-sepolia.public.blastapi.io'])];
+ evidence.providerSelection=[];
+ for(const endpoint of candidates){
+  const probe={endpoint,ok:false};evidence.providerSelection.push(probe);
+  probe.chain=await rpc(endpoint,'eth_chainId',[]);
+  if(!probe.chain.ok||uint(probe.chain.result)!==11155111){probe.reason='Unverified Sepolia chain ID';continue;}
+  probe.anchor=await rpc(endpoint,'eth_getBlockByNumber',[block,false]);
+  if(!probe.anchor.ok||!same(probe.anchor.result?.hash,report.anchor.hash)){probe.reason='Audit anchor unavailable or differs';continue;}
+  probe.codeBefore=await rpc(endpoint,'eth_getCode',[contract.address,hex(contract.start-1)]);
+  const at=await rpc(endpoint,'eth_getCode',[contract.address,hex(contract.start)]);
+  probe.codeAt=at.ok?{ok:true,bytes:(at.result.length-2)/2,hash:keccak256(at.result)}:at;
+  if(!probe.codeBefore.ok||probe.codeBefore.result!=='0x'||!at.ok||at.result==='0x'||probe.codeAt.hash!==entry.code.hash){
+   probe.reason='Historical deployment boundary/code unavailable or differs';continue;
+  }
+  probe.baselines={};
+  for(const [who,address] of Object.entries(subjects)){
+   const r=await rpc(endpoint,'eth_call',[{to:contract.address,data:iface.encodeFunctionData('identities',[address])},hex(contract.start)]);
+   probe.baselines[who]={rpc:r,ok:false};
+   try{if(r.ok){probe.baselines[who].decoded=decode('identities',r.result);probe.baselines[who].ok=true;}}catch(e){probe.baselines[who].error=safeError(e);}
+  }
+  if(Object.values(probe.baselines).some(b=>!b.ok)){probe.reason='Historical identity baseline unavailable';continue;}
+  probe.creation=await rpc(endpoint,'eth_getTransactionReceipt',[deploymentTxs[name]]);
+  if(!probe.creation.ok||!same(probe.creation.result?.contractAddress,contract.address)||probe.creation.result?.status!=='0x1'){
+   probe.reason='Deployment receipt unavailable';continue;
+  }
+  const history=await collectLogs((method,params)=>rpc(endpoint,method,params),contract.address,contract.start,uint(block));
+  if(!history.complete){probe.reason='Incomplete event history';probe.history=history;continue;}
+  probe.ok=true;evidence.history=history;evidence.endpoint=endpoint;return endpoint;
+ }
+ evidence.errors.push('No verified RPC provides the complete historical state, deployment receipt and log range');
+ return null;
+}
+
 async function corroborate(url,name,contract,entry,block){
- const request=(method,params)=>rpc(url,method,params);
  const evidence={status:'INCONCLUSIVE',errors:[],abi:[],deployment:null,history:null,decoded:null,receiptChecks:[],subjects:{}};
  entry.corroboration=evidence;
+ const historyEndpoint=await selectHistoryProvider(url,name,contract,entry,block,evidence);
+ if(!historyEndpoint){entry.auditStatus='INCONCLUSIVE';return;}
+ const request=(method,params)=>rpc(historyEndpoint,method,params);
  // Both legacy artifact ABIs must agree on signature AND indexed layout.
  for(const folder of ['compiled2','compiled3']){
   const file=path.resolve(__dirname,'../../'+folder+'/contracts_PIECore_sol_PIECore.abi');
@@ -142,8 +178,7 @@ async function corroborate(url,name,contract,entry,block){
   catch(e){rec.error=safeError(e);evidence.errors.push('Deployment-block baseline unavailable for '+who);}
   evidence.subjects[who]={baseline:rec,status:'INCONCLUSIVE'};
  }
- const history=await collectLogs(request,contract.address,contract.start,uint(block));
- evidence.history=history;
+ const history=evidence.history;
  const decoded=decodeHistory(history,contract.address);evidence.decoded=decoded;
  // Check every returned event against the canonical block and full receipt.
  // Also detect missing sibling events in each observed transaction receipt.
