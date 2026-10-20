@@ -94,6 +94,7 @@ for(const tc of expectedCases){
   const evaluated=evaluate(tc.id,{status:executed.status,signal:executed.signal,
     error:executed.error,stdout:executed.stdout,stderr:executed.stderr});
   const {status,compiled:compilerOK,reached:targetReached,matching:assertion}=evaluated;
+  if(status!=="KILLED")console.log("RT519_DEBUG "+tc.id+" "+JSON.stringify({evaluated,oracleLines:output.split(/\\r?\\n/).filter(x=>x.includes("RT519_ORACLE_EVENT=")),tail:output.slice(-1100)}));
   const record={
     id:tc.id,status,exitCode:executed.status,compilerOK,targetReached,
     expectedOracleFailure:assertion,oracleEvidence:evaluated.oracle,expectedSummary:tc.expectedSummary,
