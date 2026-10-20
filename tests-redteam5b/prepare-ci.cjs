@@ -8,7 +8,8 @@ const here = __dirname;
 const out = path.join(here, ".generated");
 const scripts = [
   ["gflo-redteam5b1-proof-tamper-revocation.mjs", "rt5b1.mjs"],
-  ["gflo-redteam5b2-praxis-revocation-consumer.mjs", "rt5b2.mjs"]
+  ["gflo-redteam5b2-praxis-revocation-consumer.mjs", "rt5b2.mjs"],
+  ["gflo-redteam5c-tier2-pause-consumer.mjs", "rt5c.mjs"]
 ];
 fs.rmSync(out, {recursive: true, force: true});
 fs.mkdirSync(out, {recursive: true});
