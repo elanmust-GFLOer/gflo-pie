@@ -69,7 +69,7 @@ Do **not** attach substantive economic privileges or claim public-network securi
 | --- | --- |
 | PR #11 RT5-15 regression and locked 5B evidence | PASS for reviewed narrow scope; conditional merge |
 | P0-A signed Tier-2 test consumer / pause-unpause ordering | **CI PASS in dedicated RED TEAM 5C fixture** — 8 added cases on top of 15 baseline, run 39494975013; production consumers and full receipt archival still OPEN |
-| RT5-19 three valid killed mutants | OPEN |
+| RT5-19 three targeted, compiling mutants | **CI 3 KILLED / 0 SURVIVED / 0 INVALID**, run 39496380124, artifact 12298845667; independent review and wider mutational coverage OPEN |
 | ERC-1271 adversarial signer receipts | OPEN |
 | Dependency review/remediation or signed bounded exception | OPEN |
 | Real-world OctoPush proof-source assurance | OPEN |
@@ -92,3 +92,17 @@ state-changing consumer authorization.
 - Next: independently review the new assertions and exact CI artifact, inventory all Tier consumers, then implement RT5-19 three-target mutation kill gate.
 
 The final Verified Contribution Core security gate remains **OPEN** pending RT5-19, ERC-1271, dependency risk disposition, source-event truth, and independent review.
+
+## P0-B interim RT5-19 execution (2026-10-20)
+
+- GitHub Actions: [39496380124](https://github.com/elanmust-GFLOer/gflo-pie/actions/runs/39496380124), job `118882388118`, completed **SUCCESS**, pinned `npm ci` environment.
+- Mutation gate: `tests-redteam5b/rt519-mutation-gate.cjs`. Injects exact one-source edits into the in-memory Solidity compiler input of disposable generated runners only; reviewed `contracts/` and original `scripts/` remain untouched. A compiler marker and a selected oracle-stage marker are mandatory for `KILLED`, and the expected assertion must fail.
+- M1 authorized attestor, preexisting eligible recipient and valid time/rule, deliberately invalid EOA signature → compiled mutated policy accepts invalid signature; original signed-transaction rejection oracle fails: **KILLED**.
+- M2 bypasses subtraction on the Praxis rule for two revoked finalized grants; original full-path canonical XP 5025→3025 assertion instead reads **5025**, so the state oracle fails: **KILLED**.
+- M3 skips dynamic Gate enforcement after the first legitimate consumer use; policy-only pause must deny a previously used state-changing Tier-2 consumer; receipt status oracle detects unauthorized success: **KILLED**.
+- The initial mutation-gate run `39496112995` yielded **2 KILLED / 1 misclassified SURVIVED / 0 INVALID** because the M2 log matcher incorrectly expected an XP value of 4025. Its detailed assertion actually reported `5025n !== 3025n`. The harness regex was corrected without changing the mutation or underlying security test, and the final run returned **3 KILLED / 0 SURVIVED / 0 INVALID**.
+- Evidence ZIP artifact ID: `12298845667`; GitHub-reported ZIP SHA-256: `9e3994cfabe272f38ab268cb4181ac88737b5e9d007c31eee13402b96311da92`. Independently rehash and inspect the **final** ZIP before external audit or merge.
+- The 5B/1, 5B/2 and 5C regressions also ran before the mutation gate on this same job. These are duplicated fixtures and are not independent properties. Mutation score 3/3 applies **only** to three explicitly seeded mutants; independently verify that an alternate mutant or unexpected earlier failure would not satisfy the matcher.
+- Remaining gates: adversarial ERC-1271 fixture, dependency advisories/remediation, source-event authenticity, broader consumer inventory, complete receipt archival, independent audit and release approval.
+
+**This is P0-B fixture-level CI evidence, not comprehensive security certification.**
