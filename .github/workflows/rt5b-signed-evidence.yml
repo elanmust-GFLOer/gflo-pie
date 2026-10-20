@@ -6,6 +6,7 @@ on:
     paths:
       - 'contracts/**'
       - 'scripts/gflo-redteam5b1-proof-tamper-revocation.mjs'
+      - 'scripts/gflo-redteam5d-erc1271-signers.mjs'
       - 'scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs'
       - 'scripts/gflo-redteam5c-tier2-pause-consumer.mjs'
       - 'scripts/gflo-redteam5c-tier2-pause-consumer.mjs'
@@ -64,6 +65,10 @@ jobs:
         run: |
           set -o pipefail
           node rt519-mutation-gate.cjs 2>&1 | tee evidence/rt519.log
+      - name: Run P1-A ERC-1271 adversarial signer matrix
+        run: |
+          set -o pipefail
+          node .generated/rt5d.mjs 2>&1 | tee evidence/rt5d.log
       - name: Capture provenance
         if: always()
         run: |
@@ -79,12 +84,14 @@ jobs:
             echo "solc_version=$(node -p 'require("solc").version()')"
           } > evidence/manifest.txt
           for file in package.json package-lock.json prepare-ci.cjs rt519-mutation-gate.cjs \
-            .generated/rt5b1.mjs .generated/rt5b2.mjs .generated/rt5c.mjs \
-            evidence/source-preparation.json evidence/rt5b1.log evidence/rt5b2.log evidence/rt5c.log evidence/rt519.log \
+            .generated/rt5b1.mjs .generated/rt5b2.mjs .generated/rt5c.mjs .generated/rt5d.mjs \
+            evidence/source-preparation.json evidence/rt5b1.log evidence/rt5b2.log evidence/rt5c.log evidence/rt519.log evidence/rt5d.log \
             ../contracts/XPPolicyV03.sol ../contracts/EffectiveTierGateV01.sol \
             ../scripts/gflo-redteam5b1-proof-tamper-revocation.mjs \
             ../scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs \
-            ../scripts/gflo-redteam5c-tier2-pause-consumer.mjs; do
+            ../scripts/gflo-redteam5c-tier2-pause-consumer.mjs \
+            ../scripts/gflo-redteam5d-erc1271-signers.mjs \
+            ../contracts/test/GFLOERC1271AdversarialMock.sol; do
             if test -f "$file"; then sha256sum "$file" >> evidence/manifest.txt; fi
           done
       - name: Upload signed EVM evidence
