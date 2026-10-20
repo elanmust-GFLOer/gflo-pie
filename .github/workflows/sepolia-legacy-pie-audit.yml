@@ -9,6 +9,7 @@ on:
       - '.github/workflows/sepolia-legacy-pie-audit.yml'
 permissions:
   contents: read
+  actions: read
 jobs:
   legacy-pie-readonly:
     runs-on: ubuntu-24.04
@@ -25,6 +26,22 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22.23.3'
+      - name: Read original audit artifact and expose verifiable evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/elanmust-GFLOer/gflo-pie/actions/artifacts/12273190322/zip > prior-audit.zip
+          python3 - <<'PY'
+          import hashlib, io, pathlib, zipfile
+          data = pathlib.Path('prior-audit.zip').read_bytes()
+          expected = '3b42cb13ec1f6e44b938a7c0fe7ca32f4768aee7f3ca8a1d44f94035fd721c3c'
+          assert hashlib.sha256(data).hexdigest() == expected, 'Original artifact ZIP digest mismatch'
+          with zipfile.ZipFile(io.BytesIO(data)) as z:
+              for name in ('audit-output/audit.json', 'audit-output/audit.md', 'audit-output/sha256.txt'):
+                  print('ORIGINAL_EVIDENCE_BEGIN ' + name)
+                  print(z.read(name).decode('utf-8'))
+                  print('ORIGINAL_EVIDENCE_END ' + name)
+          PY
       - name: Install frozen read-only runtime dependencies
         run: |
           test -f package-lock.json
@@ -34,6 +51,18 @@ jobs:
         run: |
           set -o pipefail
           node audit/sepolia-legacy-pie-readonly.cjs 2>&1 | tee audit-run.log
+      - name: Expose current audit evidence for review
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          for name in ('audit.json', 'audit.md', 'sha256.txt'):
+              p = pathlib.Path('audit-output') / name
+              if p.exists():
+                  print('CURRENT_EVIDENCE_BEGIN ' + name)
+                  print(p.read_text())
+                  print('CURRENT_EVIDENCE_END ' + name)
+          PY
       - name: Upload read-only evidence even if inconclusive
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
