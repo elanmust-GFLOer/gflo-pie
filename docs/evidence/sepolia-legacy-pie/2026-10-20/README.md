@@ -21,6 +21,25 @@
 | `audit.json` | `366df87c7ebb7c09c6ff110e32b84a2cb4ac339146c094d50b731ea7ad592b3b` |
 | `audit.md` | `a9ca847dc72bf188d296cd3cdc95399dd4768595772bb8b0c7174575cc73c592` |
 
+
+### Supplementary prior PASS — workflow failed only at artifact re-download
+
+The preceding [run 39448376238 / job 118716257151](https://github.com/elanmust-GFLOer/gflo-pie/actions/runs/39448376238/job/118716257151) completed the on-chain audit with `GFLO_LEGACY_AUDIT=PASS`, all identity state comparisons PASS, and successfully uploaded artifact **12276524286**. The workflow itself concluded **failure**, because its immediate artifact re-download received GitHub `HTTP 503`. This was not an on-chain test failure. Unlike the final run, the prior run did not complete its *own in-job* artifact re-download verification.
+
+The prior artifact ZIP was subsequently downloaded independently and checked against the GitHub-recorded digest; its member hashes matched the embedded manifest. We preserve its extracted evidence separately:
+
+- [Prior audit.json](./prior-run-39448376238/audit.json)
+- [Prior audit.md](./prior-run-39448376238/audit.md)
+- [Prior sha256.txt](./prior-run-39448376238/sha256.txt)
+- [Prior original artifact](https://github.com/elanmust-GFLOer/gflo-pie/actions/runs/39448376238/artifacts/12276524286) (retention expires 2027-01-18, subject to GitHub availability)
+- Prior audit commit: `b6d9c423e996030a94150033fdfd6867bc511e6e`
+- Prior finalized block: **11956100** (`0xb66f84`); hash: `0xa7b048367ddbc56ed506d2d19cf798bb897b0126d978ea2e4a666994c5b1947e`
+- Original prior ZIP SHA-256: `7a8a65d6b3a459574afd2ed9299833aed562b078b0de34c64735d13d98dc3e34`
+- Prior `audit.json` SHA-256: `a3b482951c26a2612ca2a104a9b61153b7bc520d69f0d215bbad35d0d09cc148`
+- Prior `audit.md` SHA-256: `ab533c2a7dd44795814c57809630cb8d8d98239f2139871f806f4c3e250e0f96`
+
+The prior and final audit states agree for all four contract/account pairs, including EARLIER / DEPLOYER **15000 XP, Sovereign, Tier 0**. The final audit is **32 finalized blocks later**. These are complementary historical snapshots, **not** independent security audits and **not** evidence that no state changes could occur outside the observed blocks. The prior workflow's failure status must not be represented as success.
+
 ### Audited subjects and contracts
 
 - USER: `0xBF579B9DFe4E8f017eaFD67390f359B229380b80`
