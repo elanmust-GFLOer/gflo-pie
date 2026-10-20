@@ -60,6 +60,10 @@ jobs:
         run: |
           set -o pipefail
           node .generated/rt5c.mjs 2>&1 | tee evidence/rt5c.log
+      - name: Run RT5-19 mutation kill gate
+        run: |
+          set -o pipefail
+          node rt519-mutation-gate.cjs 2>&1 | tee evidence/rt519.log
       - name: Capture provenance
         if: always()
         run: |
@@ -74,9 +78,9 @@ jobs:
             echo "npm_version=$(npm --version)"
             echo "solc_version=$(node -p 'require("solc").version()')"
           } > evidence/manifest.txt
-          for file in package.json package-lock.json prepare-ci.cjs \
+          for file in package.json package-lock.json prepare-ci.cjs rt519-mutation-gate.cjs \
             .generated/rt5b1.mjs .generated/rt5b2.mjs .generated/rt5c.mjs \
-            evidence/source-preparation.json evidence/rt5b1.log evidence/rt5b2.log evidence/rt5c.log \
+            evidence/source-preparation.json evidence/rt5b1.log evidence/rt5b2.log evidence/rt5c.log evidence/rt519.log \
             ../contracts/XPPolicyV03.sol ../contracts/EffectiveTierGateV01.sol \
             ../scripts/gflo-redteam5b1-proof-tamper-revocation.mjs \
             ../scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs \
