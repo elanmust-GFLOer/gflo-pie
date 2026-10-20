@@ -68,7 +68,7 @@ Do **not** attach substantive economic privileges or claim public-network securi
 | Gate | Current status |
 | --- | --- |
 | PR #11 RT5-15 regression and locked 5B evidence | PASS for reviewed narrow scope; conditional merge |
-| Real Tier-2 privileged consumer and pause/unpause ordering | OPEN |
+| P0-A signed Tier-2 test consumer / pause-unpause ordering | **CI PASS in dedicated RED TEAM 5C fixture** — 8 added cases on top of 15 baseline, run 39494975013; production consumers and full receipt archival still OPEN |
 | RT5-19 three valid killed mutants | OPEN |
 | ERC-1271 adversarial signer receipts | OPEN |
 | Dependency review/remediation or signed bounded exception | OPEN |
@@ -76,3 +76,19 @@ Do **not** attach substantive economic privileges or claim public-network securi
 | Independent audit/release approval | OPEN |
 
 **No public-network deployment, merge, or release authorization is granted by this file.**
+
+## P0-A interim CI evidence (2026-10-20)
+
+The immutable original RT5B/1 and RT5B/2 scripts have not been modified. A separate
+`scripts/gflo-redteam5c-tier2-pause-consumer.mjs` extends the 15-case RT5B/2 fixture
+with eight signed P0-A checks covering independent policy/Registry pauses,
+both unpause orders, unauthorized unpause, unknown identity and active Tier-2
+state-changing consumer authorization.
+
+- GitHub Actions PR run: [39494975013](https://github.com/elanmust-GFLOer/gflo-pie/actions/runs/39494975013), job 118877567656: **SUCCESS**.
+- RED TEAM 5B/1: 15/15; RED TEAM 5B/2: 15/15; new 5C: 23/23 (15 duplicated existing + 8 new).
+- Evidence artifact ID: `12297511738`. A verified original artifact ZIP hash and independent replay are **not yet part of this interim result**.
+- This is **fixture-specific** evidence, not production access-control deployment, full consumer enumeration, all raw receipt traces or protocol audit.
+- Next: independently review the new assertions and exact CI artifact, inventory all Tier consumers, then implement RT5-19 three-target mutation kill gate.
+
+The final Verified Contribution Core security gate remains **OPEN** pending RT5-19, ERC-1271, dependency risk disposition, source-event truth, and independent review.
