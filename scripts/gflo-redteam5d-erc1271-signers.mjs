@@ -350,7 +350,7 @@ async function snapshot1271(p) {
   weekly:await read("xp",xp,"weeklyXP",[account,activeTimestamp/(7n*86400n)]),
   event:await read("xp",xp,"usedEvents",[keccak256(p[2])]),
   evidence:await read("xp",xp,"usedEvidence",[keccak256(p[3])]),
-  nonce:await read("xp",xp,"usedProofNonces",[keccak256(abi.xp.encodeFunctionData("proofDigest",[p]))]),
+  nonce:await read("xp",xp,"usedProofNonces",[keccak256(req("ethers").AbiCoder.defaultAbiCoder().encode(["address","uint256"],[signer,p[4]]))]),
   supply:await read("token",token,"totalSupply")
  };
 }
