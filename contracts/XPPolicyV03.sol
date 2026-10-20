@@ -178,7 +178,10 @@ contract XPPolicyV03 is EIP712 {
     }
 
     /// @notice ABI-compatible with fresh TrustedXPSourceRegistryV02, which checks policy owner and core.
+    /// @dev Emergency policy pause also disables canonical reads: downstream entitlement
+    ///      gates must fail closed even while their source Registry remains unpaused.
     function totalXP(address wallet) external view returns(uint64) {
+        if(paused) revert Paused();
         IPIEForVerifiedXP.Identity memory identity=pie.getIdentity(wallet);
         if(!identity.exists) return 0;
         return identity.xp+validEarnedXP[wallet];
