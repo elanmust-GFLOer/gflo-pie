@@ -70,7 +70,7 @@ Do **not** attach substantive economic privileges or claim public-network securi
 | PR #11 RT5-15 regression and locked 5B evidence | PASS for reviewed narrow scope; conditional merge |
 | P0-A signed Tier-2 test consumer / pause-unpause ordering | **CI PASS in dedicated RED TEAM 5C fixture** — 8 added cases on top of 15 baseline, run 39494975013; production consumers and full receipt archival still OPEN |
 | RT5-19 three targeted, compiling mutants | **CI 3 KILLED / 0 SURVIVED / 0 INVALID**, run 39496380124, artifact 12298845667; independent review and wider mutational coverage OPEN |
-| ERC-1271 adversarial signer receipts | OPEN |
+| P1-A ERC-1271 local contract signer matrix | **CI PASS**: six added cases, 5D 21/21 incl. 15 baseline, run 39498428774; independent evidence review OPEN |
 | Dependency review/remediation or signed bounded exception | OPEN |
 | Real-world OctoPush proof-source assurance | OPEN |
 | Independent audit/release approval | OPEN |
@@ -106,3 +106,18 @@ The final Verified Contribution Core security gate remains **OPEN** pending RT5-
 - Remaining gates: adversarial ERC-1271 fixture, dependency advisories/remediation, source-event authenticity, broader consumer inventory, complete receipt archival, independent audit and release approval.
 
 **This is P0-B fixture-level CI evidence, not comprehensive security certification.**
+
+## P1-A ERC-1271 signed local EVM evidence (2026-10-20)
+
+- Exact test code commit: `5ac91b07b91ce288cb3ced0618a9bb4e1bf98df6`.
+- [GitHub Actions 39498428774](https://github.com/elanmust-GFLOer/gflo-pie/actions/runs/39498428774), signed-evidence job `118889422909`: **SUCCESS**.
+- New test-only mock: `contracts/test/GFLOERC1271AdversarialMock.sol`. Five selectable signer responses: valid magic, wrong magic, short ABI return, explicit revert, high gas consumption (bounded transaction).
+- Separate signed runner: `scripts/gflo-redteam5d-erc1271-signers.mjs`, using unchanged 5B/1 fixture setup and six additional scenarios. CI result **21/21**, of which 15 are repeated baseline and six are P1-A checks.
+- Invalid cases: each denied with a failed signed transaction; no receipt logs, no earned XP or canonical total increase, no quota/nullifier changes and no token supply change. The attempted gas-heavy case consumed 985243 gas of the configured 1000000 limit; this demonstrates bounded rejection, not general resistance to signer-driven availability denial.
+- Positive case: rule-authorized **contract** attestor different from the verifier returns the ERC-1271 magic, one claim PENDING with no immediate XP credit; duplicate rejected; a separate valid claim finalizes after the configured 3-day delay exactly once.
+- Immutable `XPPolicyV03`, Trusted Registry, EffectiveTierGate, core and original RED TEAM 5B scripts were not modified.
+- RED TEAM 5B/1, 5B/2 and 5C prerequisites plus RT5-19 3/3 mutations remained successful. The separate Genesis/Path workflow also succeeded.
+- CI artifact ID: `12299081466`; GitHub-reported ZIP SHA-256: `ca50db6d4d3c804f418b883e80df5d23d110540c98cbf418ebd55793b6bc7cc1`. A later independent read-only auditor must download, rehash, inspect detailed assertions and verify the exact reviewed source tree.
+- Limits: the signer mock deliberately has a fixture controller and is **not** a deployed smart wallet, passkey verifier or organizationally independent evidence source. Contract signer success verifies the return value, not real-world activity. High gas spend may deny an individual claim. No public network transaction or new authentication product is proven.
+
+Remaining security gates: pinned transitive dependency advisories, real-world OctoPush evidence-source assurance, exhaustive economic consumer inventory, independent Codex review and explicit merge/release authorization.
