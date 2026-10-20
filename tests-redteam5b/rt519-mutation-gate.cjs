@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const {spawnSync} = require("node:child_process");
+const {evaluate} = require("./rt519-oracle.cjs");
 const root = path.resolve(__dirname, "..");
 const gen = path.resolve(__dirname, ".generated");
 const out = path.resolve(__dirname, "evidence", "rt519");
@@ -70,7 +71,18 @@ for(const tc of expectedCases){
   ].join("\n")+"\n";
   let mutantRunner=originalRunner.replace(injectionNeedle,injection+injectionNeedle);
   mutantRunner=mutantRunner.replace(compiledNeedle,compiledNeedle+"\nconsole.log('RT519_COMPILED_OK="+tc.id+"');");
-  mutantRunner=mutantRunner.replace(tc.stage,"console.log('RT519_TARGET_REACHED="+tc.id+"');\n"+tc.stage);
+  const wrappedStage=[
+    "console.log('RT519_TARGET_REACHED="+tc.id+"');",
+    "try { "+tc.stage+" } catch (__rt519_error) {",
+    "const __rt519_event = {id:"+JSON.stringify(tc.id)+", code:__rt519_error.code, operator:__rt519_error.operator,",
+    "actual:typeof __rt519_error.actual === 'bigint' ? __rt519_error.actual.toString() : String(__rt519_error.actual),",
+    "expected:typeof __rt519_error.expected === 'bigint' ? __rt519_error.expected.toString() : String(__rt519_error.expected),",
+    "message:__rt519_error.message};",
+    "console.log('RT519_ORACLE_EVENT='+JSON.stringify(__rt519_event));",
+    "process.exit(97);",
+    "}"
+  ].join("\\n");
+  mutantRunner=mutantRunner.replace(tc.stage,wrappedStage);
   const dst=path.join(gen,"rt519-"+tc.id+".mjs");
   fs.writeFileSync(dst,mutantRunner);
   const executed=spawnSync(process.execPath,[dst],{
@@ -79,14 +91,12 @@ for(const tc of expectedCases){
   });
   const output=(executed.stdout||"")+"\n"+(executed.stderr||"");
   fs.writeFileSync(path.join(out,tc.id+".log"),output);
-  const compilerOK=output.includes("RT519_COMPILED_OK="+tc.id);
-  const targetReached=output.includes("RT519_TARGET_REACHED="+tc.id);
-  const assertion=tc.expected.test(output) && /AssertionError/.test(output);
-  const status=executed.error || !compilerOK || !targetReached ? "INVALID"
-    : executed.status!==0 && assertion ? "KILLED" : "SURVIVED";
+  const evaluated=evaluate(tc.id,{status:executed.status,signal:executed.signal,
+    error:executed.error,stdout:executed.stdout,stderr:executed.stderr});
+  const {status,compiled:compilerOK,reached:targetReached,matching:assertion}=evaluated;
   const record={
     id:tc.id,status,exitCode:executed.status,compilerOK,targetReached,
-    expectedOracleFailure:assertion,expectedSummary:tc.expectedSummary,
+    expectedOracleFailure:assertion,oracleEvidence:evaluated.oracle,expectedSummary:tc.expectedSummary,
     expectedMutatedSourceEffect:tc.expectedMutatedSourceEffect,
     originalSolSHA256:sha256(originalSol),mutatedSolSHA256:sha256(mutatedSol),
     originalRunnerSHA256:sha256(originalRunner),mutantRunnerSHA256:sha256(mutantRunner),
