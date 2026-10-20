@@ -1,27 +1,82 @@
 name: PIE v0.2 Genesis and Path tests
 on:
   push:
-    branches: [feature/pie-core-v0.2]
+    branches:
+      - feature/pie-core-v0.2
+      - fix/pie-v02-build-baseline-20261020
+    paths:
+      - 'contracts/**'
+      - 'tests-v02/**'
+      - '.github/workflows/pie-v02-tests.yml'
   pull_request:
     paths:
       - 'contracts/**'
       - 'tests-v02/**'
       - '.github/workflows/pie-v02-tests.yml'
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   genesis-path:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: tests-v02
+    env:
+      FORCE_COLOR: '0'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          node-version: '20'
-      - name: Install isolated test dependencies
-        run: npm install --no-audit --no-fund
-      - name: Compile Solidity
-        run: npm run compile
-      - name: Run Genesis and Path State Machine tests
-        run: npm test
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - name: Record exact source and runtime
+        run: |
+          mkdir -p evidence
+          git rev-parse HEAD
+          node --version
+          npm --version
+      - name: Bootstrap isolated dependency lock for review
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          echo "dependency_mode=BOOTSTRAP_LOCK_PENDING_REVIEW" >> "$GITHUB_ENV"
+          npm ls --depth=0 > evidence/npm-top-level.txt
+      - name: Compile complete Solidity source tree
+        run: |
+          set -o pipefail
+          npm run compile 2>&1 | tee evidence/compile.log
+      - name: Run existing Genesis and Path tests
+        run: |
+          set -o pipefail
+          npm test -- --no-compile 2>&1 | tee evidence/tests.log
+      - name: Capture build evidence
+        if: always()
+        run: |
+          mkdir -p evidence
+          {
+            echo "integration_sha=$(git rev-parse HEAD)"
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "run_attempt=$GITHUB_RUN_ATTEMPT"
+            echo "node_version=$(node --version)"
+            echo "npm_version=$(npm --version)"
+            echo "dependency_mode=${dependency_mode:-UNKNOWN}"
+            echo "compiler=$(node -p 'require(\"solc\").version()')"
+          } > evidence/manifest.txt
+          if test -f package-lock.json; then
+            cp package-lock.json evidence/package-lock.json
+            sha256sum package-lock.json >> evidence/manifest.txt
+          fi
+          for file in evidence/compile.log evidence/tests.log evidence/sources.json package.json hardhat.config.cjs prepare-sources.cjs test/PIECoreV02.identity.cjs ../.github/workflows/pie-v02-tests.yml; do
+            if test -f "$file"; then sha256sum "$file" >> evidence/manifest.txt; fi
+          done
+      - name: Upload build evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pie-v02-build-evidence
+          path: tests-v02/evidence/
+          if-no-files-found: error
+          retention-days: 90

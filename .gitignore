@@ -15,3 +15,9 @@ node_modules
 
 # Hardhat Ignition default folder for deployments against a local node
 ignition/deployments/chain-31337
+
+# Isolated PIE v0.2 generated test inputs and evidence
+/tests-v02/.sources/
+/tests-v02/.cache/
+/tests-v02/.artifacts/
+/tests-v02/evidence/
