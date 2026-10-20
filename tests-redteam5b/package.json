@@ -19,5 +19,9 @@
     "@safe-global/safe-smart-account": "1.5.0",
     "ethers": "6.15.0",
     "solc": "0.8.34"
+  },
+  "overrides": {
+    "tmp": "0.2.7",
+    "ws": "8.21.0"
   }
 }
