@@ -1,0 +1,46 @@
+name: GFLO Sepolia Legacy PIE Read-only Audit
+
+on:
+  push:
+    branches:
+      - audit/sepolia-legacy-pie-readonly
+    paths:
+      - 'tests-v02/audit/**'
+      - '.github/workflows/sepolia-legacy-pie-audit.yml'
+permissions:
+  contents: read
+jobs:
+  legacy-pie-readonly:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: tests-v02
+    steps:
+      - name: Checkout exact audit commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Setup locked Node runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - name: Install frozen read-only runtime dependencies
+        run: |
+          test -f package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund
+          git diff --exit-code -- package.json package-lock.json
+      - name: Audit live Sepolia state without signing or sending transactions
+        run: |
+          set -o pipefail
+          node audit/sepolia-legacy-pie-readonly.cjs 2>&1 | tee audit-run.log
+      - name: Upload read-only evidence even if inconclusive
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: gflo-sepolia-legacy-pie-readonly-evidence
+          path: |
+            tests-v02/audit-output/
+            tests-v02/audit-run.log
+          if-no-files-found: error
+          retention-days: 90
