@@ -26,7 +26,7 @@ const expectedCases = [
     // revocation remains healthy and the 5025 -> 3025 oracle is reached.
     to:'if(grant.status==Status.VALID && grant.ruleId != keccak256(bytes("RT5B2_PRAxis_1000"))) validEarnedXP[grant.recipient]-=grant.amount;',
     stage:'assert.equal(await read("registry",registry,"totalXP",[account]),3025n);',
-    expected:/4025n[\\s\\S]*3025n|actual.*4025n|4025n.*expected/i,
+    expected:/actual:\s*5025n,\s*expected:\s*3025n/i,
     expectedSummary:"two finalized Praxis claims revoked: canonical XP must fall 5025 to 3025",
     expectedMutatedSourceEffect:"revoking Praxis XP fails to deduct validEarnedXP"
   },
