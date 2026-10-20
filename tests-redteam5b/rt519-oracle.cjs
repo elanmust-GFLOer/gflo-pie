@@ -18,18 +18,49 @@ const ORACLES = Object.freeze({
 function evaluate(id, run) {
   const oracle = ORACLES[id];
   if (!oracle) throw Error("Unknown RT5-19 mutant: " + id);
-  const output = (run.stdout || "") + "\n" + (run.stderr || "");
-  const lines = output.split(/\r?\n/).map(x => x.trim());
-  const counted = marker => lines.filter(x => x === marker).length === 1;
-  const compiled = counted("RT519_COMPILED_OK=" + id);
-  const reached = counted("RT519_TARGET_REACHED=" + id);
-  const eventLines = lines.filter(x => x.startsWith("RT519_ORACLE_EVENT="));
-  let parsed = null;
-  if (eventLines.length === 1) {
-    try { parsed = JSON.parse(eventLines[0].slice("RT519_ORACLE_EVENT=".length)); }
-    catch { /* malformed oracle evidence -> INVALID */ }
+
+  // The child owns stdout. Stderr is diagnostic-only and may never supply
+  // evidence. Unexpected stderr also invalidates an apparently valid kill.
+  const stdout = String(run.stdout || "");
+  const stderr = String(run.stderr || "");
+  const lines = stdout.split(/\r?\n/);
+  const sourceMark = "RT519_MUTATED_SOURCE=" + id;
+  const compiledMark = "RT519_COMPILED_OK=" + id;
+  const targetMark = "RT519_TARGET_REACHED=" + id;
+  const eventPrefix = "RT519_ORACLE_EVENT=";
+  // S0 -> S1 SOURCE, S1 -> S2 COMPILED, S2 -> S3 TARGET,
+  // S3 -> S4 EVENT. Normal test output is allowed ONLY in S2.
+  let phase = 0, bad = false, parsed = null, eventCount = 0;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (line.startsWith("RT519_")) {
+      if (phase === 0 && line === sourceMark) phase = 1;
+      else if (phase === 1 && line === compiledMark) phase = 2;
+      else if (phase === 2 && line === targetMark) phase = 3;
+      else if (phase === 3 && line.startsWith(eventPrefix)) {
+        eventCount++;
+        try { parsed = JSON.parse(line.slice(eventPrefix.length)); }
+        catch { bad = true; }
+        phase = 4;
+      } else {
+        if (line.startsWith(eventPrefix)) eventCount++;
+        bad = true;
+      }
+    } else if (phase !== 2) {
+      // No output between target and the exact assertion event, or after
+      // the event: a late TypeError or an extra unrelated assertion is INVALID.
+      bad = true;
+    }
   }
-  const matching = Boolean(parsed &&
+
+  const sourceLoaded = phase >= 1;
+  const compiled = phase >= 2;
+  const reached = phase >= 3;
+  const keys = ["actual", "code", "expected", "id", "message", "operator"];
+  const matching = Boolean(phase === 4 && parsed &&
+    !Array.isArray(parsed) &&
+    Object.keys(parsed).sort().join(",") === keys.join(",") &&
     parsed.id === id &&
     parsed.code === oracle.code &&
     parsed.operator === oracle.operator &&
@@ -38,12 +69,15 @@ function evaluate(id, run) {
     typeof parsed.message === "string" &&
     oracle.messagePattern.test(parsed.message));
   let status;
-  if (run.error || run.signal || !compiled || !reached || eventLines.length > 1) status = "INVALID";
+  if (run.error || run.signal || stderr.trim() || bad || !sourceLoaded ||
+      !compiled || !reached || eventCount > 1) status = "INVALID";
   else if (run.status === 97 && matching) status = "KILLED";
-  else if (run.status === 0 && eventLines.length === 0) status = "SURVIVED";
+  else if (run.status === 0 && phase === 3 && eventCount === 0) status = "SURVIVED";
   else status = "INVALID";
-  return {status, compiled, reached, matching, eventCount:eventLines.length,
-    exitCode:run.status, signal:run.signal || null, executionError:run.error ? String(run.error) : null,
+  return {status, sourceLoaded, compiled, reached, matching,
+    eventCount, sequenceValid: !bad, stdoutOnly: !stderr.trim(),
+    exitCode:run.status, signal:run.signal || null,
+    executionError:run.error ? String(run.error) : null,
     oracle:matching ? parsed : null};
 }
 module.exports = {evaluate, ORACLES};
