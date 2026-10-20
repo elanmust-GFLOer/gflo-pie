@@ -77,7 +77,7 @@ for(const tc of expectedCases){
     "const __rt519_event = {id:"+JSON.stringify(tc.id)+", code:__rt519_error.code, operator:__rt519_error.operator,",
     "actual:typeof __rt519_error.actual === 'bigint' ? __rt519_error.actual.toString() : String(__rt519_error.actual),",
     "expected:typeof __rt519_error.expected === 'bigint' ? __rt519_error.expected.toString() : String(__rt519_error.expected),",
-    "message:__rt519_error.message};",
+    "message:String(__rt519_error.message).split(String.fromCharCode(10))[0]};",
     "console.log('RT519_ORACLE_EVENT='+JSON.stringify(__rt519_event));",
     "process.exit(97);",
     "}"
