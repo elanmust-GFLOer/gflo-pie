@@ -28,14 +28,14 @@ const deploymentTxs={
 // A range is complete only if every inclusive subrange succeeded. Failed parents
 // remain in attempts; they never count as coverage or as empty event history.
 async function collectLogs(request,address,start,end){
- const history={fromBlock:hex(start),toBlock:hex(end),filter:'address only; no topic filter',maxBlocks:49999,attempts:[],coverage:[],raw:[],errors:[],complete:false};
+ const history={fromBlock:hex(start),toBlock:hex(end),filter:'address only; no topic filter',maxBlocks:9999,attempts:[],coverage:[],raw:[],errors:[],complete:false};
  async function range(lo,hi){
-  if(history.attempts.length>=256){history.errors.push('Log request budget exhausted');return;}
+  if(history.attempts.length>=512){history.errors.push('Log request budget exhausted');return;}
   const query={address,fromBlock:hex(lo),toBlock:hex(hi)};
   const response=await request('eth_getLogs',[query]);
   history.attempts.push({query,rpc:response});
   const message=JSON.stringify(response.error||'');
-  const split=(!response.ok&&/range|too many|limit|size|more than|timeout|timed out|abort/i.test(message))||
+  const split=(!response.ok&&/block range|query.*range|too many.*(results|logs)|response.*size|size.*limit|more than.*(results|logs)|timeout|timed out|abort/i.test(message))||
     (response.ok&&Array.isArray(response.result)&&response.result.length>=1000);
   if(split&&lo<hi){const mid=Math.floor((lo+hi)/2);await range(lo,mid);await range(mid+1,hi);return;}
   if(!response.ok||!Array.isArray(response.result)||split){
@@ -49,8 +49,8 @@ async function collectLogs(request,address,start,end){
   }
  }
  if(!Number.isSafeInteger(start)||!Number.isSafeInteger(end)||end<start){history.errors.push('Invalid history bounds');return history;}
- for(let lo=start;lo<=end;lo+=49999){
-  await range(lo,Math.min(end,lo+49998));
+ for(let lo=start;lo<=end;lo+=9999){
+  await range(lo,Math.min(end,lo+9998));
   if(history.errors.length)break;
  }
  let next=start;
@@ -237,8 +237,8 @@ async function selfTest(){
  assert.equal(invalid.complete,false);
  const cap=await collectLogs(async()=>({ok:true,result:Array(1000).fill(logs[0])}),addr,2,2);
  assert.equal(cap.complete,false);
- const exact=await collectLogs(async()=>({ok:true,result:[]}),addr,0,99998);
- assert.deepEqual(exact.coverage.map(c=>[uint(c.fromBlock),uint(c.toBlock)]),[[0,49998],[49999,99997],[99998,99998]]);
+ const exact=await collectLogs(async()=>({ok:true,result:[]}),addr,0,19998);
+ assert.deepEqual(exact.coverage.map(c=>[uint(c.fromBlock),uint(c.toBlock)]),[[0,9998],[9999,19997],[19998,19998]]);
  assert.equal(exact.complete,true);
  assert.equal(replayEvents([],zero,zero).status,'PASS');
  console.log('OFFLINE_AUDIT_SELF_TESTS=PASS (14 cases; no RPC)');
@@ -246,15 +246,44 @@ async function selfTest(){
 
 let seq=0;
 const safeError=e=>String(e?.message||e).slice(0,1200);
+
+const endpointLastRequest=new Map();
 async function rpc(endpoint,method,params){
  if(!['eth_chainId','eth_getBlockByNumber','eth_getCode','eth_call','eth_getLogs','eth_getTransactionReceipt'].includes(method))throw Error('Read-only RPC allowlist rejected '+method);
- const ctl=new AbortController(),timeout=setTimeout(()=>ctl.abort(),12000);
- try{const res=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:++seq,method,params}),signal:ctl.signal});
- if(!res.ok)throw Error('HTTP '+res.status);const body=await res.json();
- if(body.error)return{ok:false,error:body.error};
- if(!Object.hasOwn(body,'result'))return{ok:false,error:'Missing JSON-RPC result'};
- return{ok:true,result:body.result};}catch(e){return{ok:false,error:safeError(e)}}finally{clearTimeout(timeout)}
+ const retries=[];
+ for(let attempt=0;attempt<3;attempt++){
+  const pause=Math.max(0,350-(Date.now()-(endpointLastRequest.get(endpoint)||0)));
+  if(pause)await new Promise(resolve=>setTimeout(resolve,pause));
+  endpointLastRequest.set(endpoint,Date.now());
+  const ctl=new AbortController(),timeout=setTimeout(()=>ctl.abort(),12000);
+  let answer,retryDelay=null;
+  try{
+   const res=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:++seq,method,params}),signal:ctl.signal});
+   const text=await res.text();let body=null;
+   try{body=JSON.parse(text);}catch{}
+   const retryAfter=res.headers?.get('retry-after')||null;
+   if(body?.error)answer={ok:false,error:body.error,httpStatus:res.status};
+   else if(!res.ok)answer={ok:false,error:{kind:'HTTP',status:res.status,body:text.slice(0,1200)},httpStatus:res.status};
+   else if(!body||!Object.hasOwn(body,'result'))answer={ok:false,error:'Missing JSON-RPC result',httpStatus:res.status};
+   else answer={ok:true,result:body.result};
+   if(retryAfter)answer.retryAfter=retryAfter;
+   const rateLimited=res.status===429||(!answer.ok&&/rate.?limit|too many requests/i.test(JSON.stringify(answer.error)));
+   if(rateLimited){
+    const seconds=retryAfter&&/^\d+(\.\d+)?$/.test(retryAfter)?Number(retryAfter):retryAfter?Math.max(0,(Date.parse(retryAfter)-Date.now())/1000):2*(attempt+1);
+    if(Number.isFinite(seconds)&&seconds<=30)retryDelay=Math.max(1000,Math.ceil(seconds*1000));
+   }
+  }catch(e){answer={ok:false,error:safeError(e)}}
+  finally{clearTimeout(timeout)}
+  if(retryDelay!==null&&attempt<2){
+   retries.push(answer);
+   await new Promise(resolve=>setTimeout(resolve,retryDelay));
+   continue;
+  }
+  if(retries.length)answer.retryAttempts=retries;
+  return answer;
+ }
 }
+
 function decode(method,result){
  const d=iface.decodeFunctionResult(method,result);
  if(method==='identities')return{xp:d[0].toString(),path:Number(d[1]),tier:Number(d[2])};
