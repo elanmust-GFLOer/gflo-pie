@@ -7,6 +7,8 @@ on:
       - 'contracts/**'
       - 'scripts/gflo-redteam5b1-proof-tamper-revocation.mjs'
       - 'scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs'
+      - 'scripts/gflo-redteam5c-tier2-pause-consumer.mjs'
+      - 'scripts/gflo-redteam5c-tier2-pause-consumer.mjs'
       - 'tests-redteam5b/**'
       - '.github/workflows/rt5b-signed-evidence.yml'
   pull_request:
@@ -54,6 +56,10 @@ jobs:
         run: |
           set -o pipefail
           node .generated/rt5b2.mjs 2>&1 | tee evidence/rt5b2.log
+      - name: Run P0-A RED TEAM 5C signed Tier-2 consumer scenarios
+        run: |
+          set -o pipefail
+          node .generated/rt5c.mjs 2>&1 | tee evidence/rt5c.log
       - name: Capture provenance
         if: always()
         run: |
@@ -69,11 +75,12 @@ jobs:
             echo "solc_version=$(node -p 'require("solc").version()')"
           } > evidence/manifest.txt
           for file in package.json package-lock.json prepare-ci.cjs \
-            .generated/rt5b1.mjs .generated/rt5b2.mjs \
-            evidence/source-preparation.json evidence/rt5b1.log evidence/rt5b2.log \
+            .generated/rt5b1.mjs .generated/rt5b2.mjs .generated/rt5c.mjs \
+            evidence/source-preparation.json evidence/rt5b1.log evidence/rt5b2.log evidence/rt5c.log \
             ../contracts/XPPolicyV03.sol ../contracts/EffectiveTierGateV01.sol \
             ../scripts/gflo-redteam5b1-proof-tamper-revocation.mjs \
-            ../scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs; do
+            ../scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs \
+            ../scripts/gflo-redteam5c-tier2-pause-consumer.mjs; do
             if test -f "$file"; then sha256sum "$file" >> evidence/manifest.txt; fi
           done
       - name: Upload signed EVM evidence
