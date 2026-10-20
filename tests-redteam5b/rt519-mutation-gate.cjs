@@ -81,7 +81,7 @@ for(const tc of expectedCases){
     "console.log('RT519_ORACLE_EVENT='+JSON.stringify(__rt519_event));",
     "process.exit(97);",
     "}"
-  ].join("\\n");
+  ].join("\n");
   mutantRunner=mutantRunner.replace(tc.stage,wrappedStage);
   const dst=path.join(gen,"rt519-"+tc.id+".mjs");
   fs.writeFileSync(dst,mutantRunner);
