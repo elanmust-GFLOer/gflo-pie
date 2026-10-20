@@ -39,10 +39,12 @@ jobs:
           git rev-parse HEAD
           node --version
           npm --version
-      - name: Bootstrap isolated dependency lock for review
+      - name: Install locked isolated test dependencies
         run: |
-          npm install --ignore-scripts --no-audit --no-fund
-          echo "dependency_mode=BOOTSTRAP_LOCK_PENDING_REVIEW" >> "$GITHUB_ENV"
+          test -f package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund
+          git diff --exit-code -- package.json package-lock.json
+          echo "dependency_mode=LOCKED_NPM_CI" >> "$GITHUB_ENV"
           npm ls --depth=0 > evidence/npm-top-level.txt
       - name: Compile complete Solidity source tree
         run: |
@@ -55,7 +57,10 @@ jobs:
       - name: Capture build evidence
         if: always()
         run: |
+          set -euo pipefail
           mkdir -p evidence
+          compiler_version=$(node -p 'require("solc").version()')
+          test -n "$compiler_version"
           {
             echo "integration_sha=$(git rev-parse HEAD)"
             echo "run_id=$GITHUB_RUN_ID"
@@ -63,7 +68,7 @@ jobs:
             echo "node_version=$(node --version)"
             echo "npm_version=$(npm --version)"
             echo "dependency_mode=${dependency_mode:-UNKNOWN}"
-            echo "compiler=$(node -p 'require(\"solc\").version()')"
+            echo "compiler=$compiler_version"
           } > evidence/manifest.txt
           if test -f package-lock.json; then
             cp package-lock.json evidence/package-lock.json
