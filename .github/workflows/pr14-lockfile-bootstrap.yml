@@ -38,6 +38,7 @@ jobs:
           sha256sum package.json package-lock.json
       - name: Report independent npm audit without hiding findings
         run: |
+          set +e
           set -uo pipefail
           npm audit --json > /tmp/pr14-npm-audit.json
           audit_status=$?
