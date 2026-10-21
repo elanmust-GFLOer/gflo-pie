@@ -1,0 +1,98 @@
+name: PR14 Hardhat dependency evidence and acceptance
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    paths:
+      - 'tests-v02/package.json'
+      - 'tests-v02/package-lock.json'
+      - '.github/workflows/pr14-dependency-audit.yml'
+  push:
+    branches: [security/hardhat-dependency-hardening-20261021]
+    paths:
+      - 'tests-v02/package.json'
+      - 'tests-v02/package-lock.json'
+      - '.github/workflows/pr14-dependency-audit.yml'
+permissions:
+  contents: read
+jobs:
+  dependency-acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: tests-v02
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - name: Record pinned source and runtime
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/dependencies
+          git rev-parse HEAD > evidence/dependencies/checkout-sha.txt
+          git rev-parse 'HEAD^{tree}' > evidence/dependencies/checkout-tree.txt
+          printf 'event=%s\nhead=%s\nbase=%s\n' "$GITHUB_EVENT_NAME" "${{ github.event.pull_request.head.sha || '' }}" "${{ github.event.pull_request.base.sha || '' }}" > evidence/dependencies/event.txt
+          node --version > evidence/dependencies/node-version.txt
+          npm --version > evidence/dependencies/npm-version.txt
+          sha256sum package.json package-lock.json > evidence/dependencies/source-sha256.txt
+      - name: Reproduce locked install and dependency graph
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm ls --all --json > evidence/dependencies/installed-graph.json
+          git diff --exit-code -- package.json package-lock.json
+          node - <<'NODE'
+          const p = require('./package-lock.json').packages;
+          if(p['node_modules/tmp']?.version !== '0.2.7') throw Error('tmp lock mismatch');
+          if(p['node_modules/ws']?.version !== '8.21.1') throw Error('ethers ws lock mismatch');
+          if(Object.entries(p).some(([key,value]) => (key.endsWith('/tmp') && value.version === '0.0.33') || (key.endsWith('/ws') && value.version === '8.17.1'))) throw Error('legacy affected installed lock node');
+          NODE
+      - name: Collect RAW online npm audit and actual exit code
+        run: |
+          set -uo pipefail
+          set +e
+          npm audit --json > evidence/dependencies/npm-audit-raw.json
+          code=$?
+          set -e
+          printf '%s\n' "$code" > evidence/dependencies/npm-audit-exit-code.txt
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const report=JSON.parse(fs.readFileSync('evidence/dependencies/npm-audit-raw.json','utf8'));
+          const counts=report.metadata?.vulnerabilities;
+          if(!counts || typeof counts.total !== 'number') throw Error('Invalid npm audit report: missing metadata.vulnerabilities');
+          fs.writeFileSync('evidence/dependencies/npm-audit-summary.json',JSON.stringify({counts,affectedPackages:Object.keys(report.vulnerabilities||{})},null,2)+'\n');
+          console.log('GFLO_PR14_AUDIT_COUNTS='+JSON.stringify(counts));
+          NODE
+          cat evidence/dependencies/npm-audit-exit-code.txt
+      - name: Compile unchanged contracts and execute 15 Genesis/Path assertions
+        run: |
+          set -euo pipefail
+          npm run compile 2>&1 | tee evidence/dependencies/compile.log
+          npm test -- --no-compile 2>&1 | tee evidence/dependencies/tests.log
+      - name: Capture final evidence hashes
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/dependencies
+          find evidence/dependencies -maxdepth 1 -type f ! -name manifest-sha256.txt -print0 | sort -z | xargs -0 -r sha256sum > evidence/dependencies/manifest-sha256.txt
+      - name: Upload audit evidence, including any failed audit
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr14-hardhat-dependency-audit
+          path: tests-v02/evidence/dependencies/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Enforce no-unaccepted-advisories acceptance gate
+        run: |
+          set -euo pipefail
+          test -f evidence/dependencies/npm-audit-exit-code.txt
+          code="$(cat evidence/dependencies/npm-audit-exit-code.txt)"
+          if [ "$code" != 0 ]; then
+            echo "::error::PR14 dependency acceptance remains OPEN: npm audit exit code=$code. Fix or explicitly accept each remaining advisory in a separate approved risk register."
+            exit 1
+          fi
+          echo 'No npm audit vulnerabilities reported for this pinned run.'
