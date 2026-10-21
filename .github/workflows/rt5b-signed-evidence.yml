@@ -1,0 +1,86 @@
+name: RED TEAM 5B signed EVM evidence (isolated)
+on:
+  push:
+    branches:
+      - fix/rt5-15-policy-pause-failclosed-20261020
+    paths:
+      - 'contracts/**'
+      - 'scripts/gflo-redteam5b1-proof-tamper-revocation.mjs'
+      - 'scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs'
+      - 'tests-redteam5b/**'
+      - '.github/workflows/rt5b-signed-evidence.yml'
+  pull_request:
+    paths:
+      - 'contracts/**'
+      - 'scripts/gflo-redteam5b1-proof-tamper-revocation.mjs'
+      - 'scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs'
+      - 'tests-redteam5b/**'
+      - '.github/workflows/rt5b-signed-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  signed-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: tests-redteam5b
+    env:
+      FORCE_COLOR: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - name: Install exact isolated dependencies
+        run: |
+          test -s package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund
+          git diff --exit-code -- package.json package-lock.json
+          mkdir -p evidence
+          node --version > evidence/node-version.txt
+          npm --version > evidence/npm-version.txt
+          npm ls --depth=0 > evidence/dependencies.txt
+      - name: Prepare source-anchored RED TEAM 5B copies
+        run: npm run prepare
+      - name: Run RED TEAM 5B/1 signed EVM scenarios
+        run: |
+          set -o pipefail
+          node .generated/rt5b1.mjs 2>&1 | tee evidence/rt5b1.log
+      - name: Run RED TEAM 5B/2 signed EVM scenarios
+        run: |
+          set -o pipefail
+          node .generated/rt5b2.mjs 2>&1 | tee evidence/rt5b2.log
+      - name: Capture provenance
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          {
+            echo "integration_sha=$(git rev-parse HEAD)"
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "run_attempt=$GITHUB_RUN_ATTEMPT"
+            echo "dependency_mode=LOCKED_NPM_CI"
+            echo "node_version=$(node --version)"
+            echo "npm_version=$(npm --version)"
+            echo "solc_version=$(node -p 'require("solc").version()')"
+          } > evidence/manifest.txt
+          for file in package.json package-lock.json prepare-ci.cjs \
+            .generated/rt5b1.mjs .generated/rt5b2.mjs \
+            evidence/source-preparation.json evidence/rt5b1.log evidence/rt5b2.log \
+            ../contracts/XPPolicyV03.sol ../contracts/EffectiveTierGateV01.sol \
+            ../scripts/gflo-redteam5b1-proof-tamper-revocation.mjs \
+            ../scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs; do
+            if test -f "$file"; then sha256sum "$file" >> evidence/manifest.txt; fi
+          done
+      - name: Upload signed EVM evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rt5b-signed-evidence
+          path: tests-redteam5b/evidence/
+          if-no-files-found: error
+          retention-days: 90
