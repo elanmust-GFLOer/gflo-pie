@@ -47,7 +47,7 @@ await check("server domain mismatch denies copied signed message",async()=>{
 await check("chain mismatch denies a signature from other deployment",async()=>{
  const a=mk(),b=mk({chainId:1}),ca=request(a),cb=request(b);
  const s=await wallet.signMessage(ca.message);
- await assert.rejects(b.verify({authenticatedProfile:"profile-A",nonce:cb.nonce,signature:s}),/WRONG_WALLET|INVALID_SIGNATURE/);
+ assert.throws(()=>b.verify({authenticatedProfile:"profile-A",nonce:cb.nonce,signature:s}),/WRONG_WALLET|INVALID_SIGNATURE/);
 });
 await check("different authenticated profile cannot redeem challenge",async()=>{
  const v=mk(),c=request(v);await assert.rejects(submit(v,c,wallet,"profile-B"),/PROFILE_MISMATCH/);
