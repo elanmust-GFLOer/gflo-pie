@@ -36,6 +36,19 @@ jobs:
           npm run compile
           npm test -- --no-compile
           sha256sum package.json package-lock.json
+      - name: Report independent npm audit without hiding findings
+        run: |
+          set -uo pipefail
+          npm audit --json > /tmp/pr14-npm-audit.json
+          audit_status=$?
+          node - <<'NODE'
+          const fs=require('fs');
+          const report=JSON.parse(fs.readFileSync('/tmp/pr14-npm-audit.json','utf8'));
+          const list=Object.entries(report.vulnerabilities||{}).map(([name,v])=>({name,severity:v.severity,via:v.via.map(x=>typeof x==='string'?x:x.title),fixAvailable:v.fixAvailable}));
+          console.log('GFLO_PR14_AUDIT '+JSON.stringify({metadata:report.metadata?.vulnerabilities??null,vulnerabilities:list,status:Number(process.env.MISSING_STATUS||0)}));
+          NODE
+          echo "npm_audit_exit_code=$audit_status"
+          exit 0
       - name: Commit npm-generated lockfile to bootstrap branch only
         env:
           GH_TOKEN: ${{ github.token }}
