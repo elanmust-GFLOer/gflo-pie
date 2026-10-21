@@ -83,7 +83,7 @@ async function read(k,address,fn,args=[]){
   return abi[k].decodeFunctionResult(fn,bytesToHex(res.returnValue))[0];
  }finally{await vm.stateManager.revert();}
 }
-let n=0;const N=21;
+let n=0;const N=22;
 async function check(title,fn){await fn();console.log("✅ "+(++n)+"/"+N+" "+title);}
 console.log("=== GFLO RED TEAM 5B/1 — PROOF TAMPER / REVOCATION NEGATIVE GATES ===");
 console.log("Solc:",solc.version());
@@ -398,6 +398,81 @@ await check("RT5-18 finalized contract-attested XP adds once after challenge",as
  assert.equal(await read("xp",xp,"validEarnedXP",[account]),before+100n);
  await send("outsider","xp",xp,"finalize",[claim],0);
 });
+// L-01 gas-specific positive/negative control.
+// Both signed policy.submit transactions have identical calldata, verifier nonce,
+// block time and 1,000,000 gas limit. A VM state-manager checkpoint rolls back
+// the successful PENDING submission before exercising the hostile signer mode.
+// The only relevant change is the fixture signer's response mode.
+await check("RT5-18 L-01 equal-gas VALID control succeeds, GAS_HEAVY rejects same proof",async()=>{
+ const GAS_L01=1000000n;
+ const {p,signature,digest}=await proof1271();
+ await send("deployer","signer",signer,"setMode",[0]);
+ assert.equal(await read("signer",signer,"mode"),0n);
+ const initial=await snapshot1271(p);
+ assert.equal(initial.event,false);
+ assert.equal(initial.evidence,false);
+ assert.equal(initial.nonce,false);
+ const originalVerifierNonce=senders.verifier.nonce;
+ const calldata=abi.xp.encodeFunctionData("submit",[p,signer,signature]);
+ async function boundedSignedSubmit(){
+  const s=senders.verifier;
+  const beforeNonce=s.nonce;
+  const signed=createLegacyTx({
+   nonce:beforeNonce,gasLimit:GAS_L01,gasPrice:GAS_PRICE,
+   to:xp,data:hexToBytes(calldata)
+  },{common}).sign(s.key);
+  const block=createBlock({header:{timestamp:activeTimestamp,gasLimit:30000000n}},{common});
+  const receipt=await runTx(vm,{tx:signed,block});
+  s.nonce++;
+  assert.equal((await vm.stateManager.getAccount(s.address)).nonce,s.nonce);
+  assert.ok(receipt.totalGasSpent<=GAS_L01);
+  return receipt;
+ }
+ await vm.stateManager.checkpoint();
+ let accepted, validGasSpent;
+ try {
+  accepted=await boundedSignedSubmit();
+  assert.equal(Number(accepted.receipt.status),1,"same-gas VALID mode must succeed");
+  validGasSpent=accepted.totalGasSpent;
+  const claim=await grantFromReceipt(accepted);
+  assert.equal(await readGrantStatus(claim),1n,"same-gas VALID grant must be PENDING");
+  const after=await snapshot1271(p);
+  assert.equal(after.xp,initial.xp,"PENDING must not credit XP");
+  assert.equal(after.total,initial.total,"PENDING must not increase canonical XP");
+  assert.equal(after.count,initial.count+1n,"successful grant consumes rule count");
+  assert.equal(after.event,true,"successful grant consumes event nullifier");
+  assert.equal(after.evidence,true,"successful grant consumes evidence nullifier");
+  assert.equal(after.nonce,true,"successful grant consumes proof nonce");
+ } finally {
+  await vm.stateManager.revert();
+  senders.verifier.nonce=originalVerifierNonce;
+ }
+ assert.deepEqual(await snapshot1271(p),initial,
+  "checkpoint/revert must restore exact pre-submission XP/quota/nullifier state");
+ assert.equal((await vm.stateManager.getAccount(senders.verifier.address)).nonce,
+  originalVerifierNonce,"checkpoint must restore verifier account nonce");
+ await send("deployer","signer",signer,"setMode",[4]);
+ assert.equal(await read("signer",signer,"mode"),4n);
+ const beforeHeavy=await snapshot1271(p);
+ assert.deepEqual(beforeHeavy,initial,
+  "gas-heavy attempt must start with equivalent XP/quota/nullifier state");
+ assert.equal(senders.verifier.nonce,originalVerifierNonce,
+  "the same signed verifier nonce must be replayed from reverted checkpoint");
+ const denied=await boundedSignedSubmit();
+ assert.equal(Number(denied.receipt.status),0,
+  "same-gas GAS_HEAVY attempt must revert");
+ assert.equal(denied.receipt.logs.length,0,"rejected proof must emit no grant log");
+ assert.deepEqual(await snapshot1271(p),beforeHeavy,
+  "gas-heavy failure must not spend claim quota, XP or replay nullifiers");
+ assert.ok(denied.totalGasSpent>validGasSpent,
+  "hostile signer must consume more gas than accepted signed control");
+ console.log("RT518_L01_SAME_GAS_PASS "+JSON.stringify({
+  gasLimit:GAS_L01.toString(),validGasSpent:validGasSpent.toString(),
+  heavyGasSpent:denied.totalGasSpent.toString(),validStatus:1,heavyStatus:0,
+  digest,verifierNonce:originalVerifierNonce.toString(),
+  sameCalldata:true,checkpointRestored:true,failedStateUnchanged:true
+ }));
+});
 assert.equal(n,N);
-console.log("✅ 21/21 RED TEAM 5D ERC-1271 ADVERSARIAL SIGNER CHECKS PASS");
-console.log("Scope: 15 repeated 5B1 checks + 6 ERC-1271 scenarios; local synthetic EVM only.");
+console.log("✅ 22/22 RED TEAM 5D ERC-1271 ADVERSARIAL SIGNER CHECKS PASS");
+console.log("Scope: 15 repeated 5B1 checks + 7 ERC-1271 scenarios, including equal-gas L-01; local synthetic EVM only.");
