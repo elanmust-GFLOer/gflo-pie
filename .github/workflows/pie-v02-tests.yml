@@ -9,6 +9,7 @@ on:
       - 'tests-v02/**'
       - '.github/workflows/pie-v02-tests.yml'
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     paths:
       - 'contracts/**'
       - 'tests-v02/**'
@@ -28,15 +29,18 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22.23.3'
       - name: Record exact source and runtime
         run: |
+          set -euo pipefail
           mkdir -p evidence
-          git rev-parse HEAD
+          git rev-parse HEAD > evidence/checkout-sha.txt
+          git rev-parse HEAD^{tree} > evidence/checkout-tree.txt
+          printf 'event=%s\nhead=%s\nbase=%s\n' "$GITHUB_EVENT_NAME" "${{ github.event.pull_request.head.sha || '' }}" "${{ github.event.pull_request.base.sha || '' }}" > evidence/checkout-event.txt
+          cat evidence/checkout-sha.txt
           node --version
           npm --version
       - name: Install locked isolated test dependencies
@@ -74,7 +78,7 @@ jobs:
             cp package-lock.json evidence/package-lock.json
             sha256sum package-lock.json >> evidence/manifest.txt
           fi
-          for file in evidence/compile.log evidence/tests.log evidence/sources.json package.json hardhat.config.cjs prepare-sources.cjs test/PIECoreV02.identity.cjs ../.github/workflows/pie-v02-tests.yml; do
+          for file in evidence/checkout-sha.txt evidence/checkout-tree.txt evidence/checkout-event.txt evidence/compile.log evidence/tests.log evidence/sources.json package.json hardhat.config.cjs prepare-sources.cjs test/PIECoreV02.identity.cjs ../.github/workflows/pie-v02-tests.yml; do
             if test -f "$file"; then sha256sum "$file" >> evidence/manifest.txt; fi
           done
       - name: Upload build evidence

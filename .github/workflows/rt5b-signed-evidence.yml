@@ -4,6 +4,8 @@ on:
     branches:
       - fix/rt5-15-policy-pause-failclosed-20261020
       - security/verified-contribution-gate-20261020
+      - feature/pie-core-v0.2
+      - security/ci-provenance-gate-20261021
     paths:
       - 'contracts/**'
       - 'scripts/gflo-redteam5b1-proof-tamper-revocation.mjs'
@@ -13,6 +15,7 @@ on:
       - 'tests-redteam5b/**'
       - '.github/workflows/rt5b-signed-evidence.yml'
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     paths:
       - 'contracts/**'
       - 'scripts/gflo-redteam5b1-proof-tamper-revocation.mjs'
@@ -37,6 +40,13 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+      - name: Record checkout provenance
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          git rev-parse HEAD > evidence/checkout-sha.txt
+          git rev-parse HEAD^{tree} > evidence/checkout-tree.txt
+          printf 'event=%s\nhead=%s\nbase=%s\n' "$GITHUB_EVENT_NAME" "${{ github.event.pull_request.head.sha || '' }}" "${{ github.event.pull_request.base.sha || '' }}" > evidence/checkout-event.txt
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '22.23.3'
@@ -89,7 +99,7 @@ jobs:
             echo "npm_version=$(npm --version)"
             echo "solc_version=$(node -p 'require("solc").version()')"
           } > evidence/manifest.txt
-          for file in package.json package-lock.json prepare-ci.cjs rt519-mutation-gate.cjs rt519-oracle.cjs rt519-oracle-selftest.cjs \
+          for file in evidence/checkout-sha.txt evidence/checkout-tree.txt evidence/checkout-event.txt package.json package-lock.json prepare-ci.cjs rt519-mutation-gate.cjs rt519-oracle.cjs rt519-oracle-selftest.cjs \
             .generated/rt5b1.mjs .generated/rt5b2.mjs .generated/rt5c.mjs .generated/rt5d.mjs \
             evidence/source-preparation.json evidence/rt5b1.log evidence/rt5b2.log evidence/rt5c.log evidence/rt519.log evidence/rt519-selftest.log evidence/rt5d.log \
             ../contracts/XPPolicyV03.sol ../contracts/EffectiveTierGateV01.sol \
