@@ -27,7 +27,8 @@ function canonicalMessage(c) {
     "GFLO OctoPass Wallet Binding v0.1", "Domain: " + c.domain,
     "Profile: " + c.profileRef, "Chain ID: " + c.chainId,
     "Wallet: " + c.account, "Scopes: " + c.scopes.join(","),
-    "Nonce: " + c.nonce, "Issued At (ms): " + c.issuedAt,
+    "Nonce: " + c.nonce, "Binding Epoch: " + c.epoch,
+    "Issued At (ms): " + c.issuedAt,
     "Expires At (ms): " + c.expiresAt,
     "Purpose: Prove wallet control and consent to this binding only.",
     "No XP or Tier is granted."
@@ -42,6 +43,8 @@ class WalletBindingPilot {
     this.ttlMs = ttlMs;
     this.challenges = new Map();
     this.bindings = new Map();
+    // Profile-and-chain consent generation: revocation invalidates every older challenge.
+    this.epochs = new Map();
   }
   issue({ authenticatedProfile, profileRef, account, scopes }) {
     // Caller identity is server-supplied in a real connector, never trusted from client JSON.
@@ -49,9 +52,11 @@ class WalletBindingPilot {
     const wallet = normalizeAccount(account);
     const limitedScopes = nonemptyScopes(scopes);
     const issuedAt = this.now();
-    if (!Number.isSafeInteger(issuedAt) || issuedAt < 0) throw Error("INVALID_CLOCK");
+    if (!Number.isSafeInteger(issuedAt) || issuedAt < 0 || !Number.isSafeInteger(issuedAt+this.ttlMs)) throw Error("INVALID_CLOCK");
+    const key = profileRef + ":" + this.chainId;
+    const epoch = this.epochs.get(key) ?? 0;
     const nonce = randomBytes(32).toString("hex");
-    const challenge = {domain:this.domain,chainId:this.chainId,profileRef,account:wallet,scopes:limitedScopes,nonce,issuedAt,expiresAt:issuedAt+this.ttlMs};
+    const challenge = {domain:this.domain,chainId:this.chainId,profileRef,account:wallet,scopes:limitedScopes,nonce,epoch,issuedAt,expiresAt:issuedAt+this.ttlMs};
     this.challenges.set(nonce, challenge);
     return Object.freeze({nonce, message:canonicalMessage(challenge), expiresAt:challenge.expiresAt});
   }
@@ -59,18 +64,24 @@ class WalletBindingPilot {
     requireString(authenticatedProfile, "AUTH");
     const challenge = this.challenges.get(nonce);
     if (!challenge) throw Error("INVALID_OR_USED_NONCE");
-    // Consume before signature checking: failed, expired, or racing attempts cannot replay.
-    this.challenges.delete(nonce);
+    // An unrelated authenticated profile MUST NOT consume another user's challenge.
     if (authenticatedProfile !== challenge.profileRef) throw Error("PROFILE_MISMATCH");
+    const key = challenge.profileRef + ":" + challenge.chainId;
+    if ((this.epochs.get(key) ?? 0) !== challenge.epoch) {
+      this.challenges.delete(nonce);
+      throw Error("STALE_BINDING_EPOCH");
+    }
+    // Consume once the authenticated owner is checked, even on expired/invalid signatures.
+    // Synchronous in-memory fixture only: not an atomic cross-process database operation.
+    this.challenges.delete(nonce);
     if (this.now() >= challenge.expiresAt) throw Error("CHALLENGE_EXPIRED");
     if (typeof signature !== "string") throw Error("INVALID_SIGNATURE");
     let recovered;
     try { recovered = verifyMessage(canonicalMessage(challenge),signature); } catch { throw Error("INVALID_SIGNATURE"); }
     if (recovered !== challenge.account) throw Error("WRONG_WALLET");
-    const key = challenge.profileRef + ":" + challenge.chainId;
     const id = randomBytes(32).toString("hex");
     const previous = this.bindings.get(key);
-    if (previous && !previous.revokedAt) throw Error("ALREADY_BOUND");
+    if (previous && previous.revokedAt === null) throw Error("ALREADY_BOUND");
     const binding = {id, profileRef:challenge.profileRef,chainId:challenge.chainId,account:challenge.account,scopes:challenge.scopes, consentAt:this.now(),revokedAt:null};
     this.bindings.set(key,binding);
     return Object.freeze({...binding,scopes:[...binding.scopes]});
@@ -79,7 +90,16 @@ class WalletBindingPilot {
     const key = requireString(authenticatedProfile,"AUTH")+":"+validChain(chainId);
     const current = this.bindings.get(key);
     if (!current || current.revokedAt !== null) throw Error("NOT_ACTIVE");
-    current.revokedAt = this.now();
+    const at = this.now();
+    if (!Number.isSafeInteger(at) || at < 0) throw Error("INVALID_CLOCK");
+    const priorEpoch = this.epochs.get(key) ?? 0;
+    if (!Number.isSafeInteger(priorEpoch + 1)) throw Error("EPOCH_OVERFLOW");
+    current.revokedAt = at; // zero is valid: never use truthiness to test revocation
+    this.epochs.set(key, priorEpoch + 1);
+    // Invalidate all outstanding challenges from before revocation, including W2.
+    for (const [nonce, pending] of this.challenges) {
+      if (pending.profileRef === authenticatedProfile && pending.chainId === chainId) this.challenges.delete(nonce);
+    }
     return true;
   }
   getActive({ authenticatedProfile, chainId }) {
