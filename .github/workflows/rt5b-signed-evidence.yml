@@ -3,10 +3,13 @@ on:
   push:
     branches:
       - fix/rt5-15-policy-pause-failclosed-20261020
+      - security/verified-contribution-gate-20261020
     paths:
       - 'contracts/**'
       - 'scripts/gflo-redteam5b1-proof-tamper-revocation.mjs'
+      - 'scripts/gflo-redteam5d-erc1271-signers.mjs'
       - 'scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs'
+      - 'scripts/gflo-redteam5c-tier2-pause-consumer.mjs'
       - 'tests-redteam5b/**'
       - '.github/workflows/rt5b-signed-evidence.yml'
   pull_request:
@@ -14,6 +17,8 @@ on:
       - 'contracts/**'
       - 'scripts/gflo-redteam5b1-proof-tamper-revocation.mjs'
       - 'scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs'
+      - 'scripts/gflo-redteam5c-tier2-pause-consumer.mjs'
+      - 'scripts/gflo-redteam5d-erc1271-signers.mjs'
       - 'tests-redteam5b/**'
       - '.github/workflows/rt5b-signed-evidence.yml'
   workflow_dispatch:
@@ -54,6 +59,22 @@ jobs:
         run: |
           set -o pipefail
           node .generated/rt5b2.mjs 2>&1 | tee evidence/rt5b2.log
+      - name: Run P0-A RED TEAM 5C signed Tier-2 consumer scenarios
+        run: |
+          set -o pipefail
+          node .generated/rt5c.mjs 2>&1 | tee evidence/rt5c.log
+      - name: Self-test RT5-19 mutation classifier against false kills
+        run: |
+          set -o pipefail
+          node rt519-oracle-selftest.cjs 2>&1 | tee evidence/rt519-selftest.log
+      - name: Run RT5-19 mutation kill gate
+        run: |
+          set -o pipefail
+          node rt519-mutation-gate.cjs 2>&1 | tee evidence/rt519.log
+      - name: Run P1-A ERC-1271 adversarial signer matrix
+        run: |
+          set -o pipefail
+          node .generated/rt5d.mjs 2>&1 | tee evidence/rt5d.log
       - name: Capture provenance
         if: always()
         run: |
@@ -68,12 +89,15 @@ jobs:
             echo "npm_version=$(npm --version)"
             echo "solc_version=$(node -p 'require("solc").version()')"
           } > evidence/manifest.txt
-          for file in package.json package-lock.json prepare-ci.cjs \
-            .generated/rt5b1.mjs .generated/rt5b2.mjs \
-            evidence/source-preparation.json evidence/rt5b1.log evidence/rt5b2.log \
+          for file in package.json package-lock.json prepare-ci.cjs rt519-mutation-gate.cjs rt519-oracle.cjs rt519-oracle-selftest.cjs \
+            .generated/rt5b1.mjs .generated/rt5b2.mjs .generated/rt5c.mjs .generated/rt5d.mjs \
+            evidence/source-preparation.json evidence/rt5b1.log evidence/rt5b2.log evidence/rt5c.log evidence/rt519.log evidence/rt519-selftest.log evidence/rt5d.log \
             ../contracts/XPPolicyV03.sol ../contracts/EffectiveTierGateV01.sol \
             ../scripts/gflo-redteam5b1-proof-tamper-revocation.mjs \
-            ../scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs; do
+            ../scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs \
+            ../scripts/gflo-redteam5c-tier2-pause-consumer.mjs \
+            ../scripts/gflo-redteam5d-erc1271-signers.mjs \
+            ../contracts/test/GFLOERC1271AdversarialMock.sol; do
             if test -f "$file"; then sha256sum "$file" >> evidence/manifest.txt; fi
           done
       - name: Upload signed EVM evidence
