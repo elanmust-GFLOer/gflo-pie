@@ -36,13 +36,13 @@ await check("wrong signer cannot bind wallet; nonce consumed",async()=>{
 });
 await check("signature tamper fails without binding",async()=>{
  const v=mk(),c=request(v),s=await wallet.signMessage(c.message);
- await assert.rejects(v.verify({authenticatedProfile:"profile-A",nonce:c.nonce,signature:s.slice(0,-2)+"zz"}),/INVALID_SIGNATURE/);
+ assert.throws(()=>v.verify({authenticatedProfile:"profile-A",nonce:c.nonce,signature:s.slice(0,-2)+"zz"}),/INVALID_SIGNATURE/);
  assert.equal(v.getActive({authenticatedProfile:"profile-A",chainId:31337}),null);
 });
 await check("server domain mismatch denies copied signed message",async()=>{
  const a=mk(),b=mk({domain:"other.gflo"}),ca=request(a),cb=request(b);
  const s=await wallet.signMessage(ca.message);
- await assert.rejects(b.verify({authenticatedProfile:"profile-A",nonce:cb.nonce,signature:s}),/WRONG_WALLET|INVALID_SIGNATURE/);
+ assert.throws(()=>b.verify({authenticatedProfile:"profile-A",nonce:cb.nonce,signature:s}),/WRONG_WALLET|INVALID_SIGNATURE/);
 });
 await check("chain mismatch denies a signature from other deployment",async()=>{
  const a=mk(),b=mk({chainId:1}),ca=request(a),cb=request(b);
