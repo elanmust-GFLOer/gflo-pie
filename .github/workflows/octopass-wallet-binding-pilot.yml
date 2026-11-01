@@ -1,0 +1,52 @@
+name: OctoPass wallet binding pilot security checks (isolated)
+on:
+  push:
+    branches: [feature/octopass-wallet-binding-pilot-20261021]
+    paths:
+      - 'tests-redteam5b/octopass-wallet-binding-pilot.cjs'
+      - 'tests-redteam5b/octopass-wallet-binding-pilot.test.cjs'
+      - '.github/workflows/octopass-wallet-binding-pilot.yml'
+  pull_request:
+    paths:
+      - 'tests-redteam5b/octopass-wallet-binding-pilot.cjs'
+      - 'tests-redteam5b/octopass-wallet-binding-pilot.test.cjs'
+      - '.github/workflows/octopass-wallet-binding-pilot.yml'
+permissions:
+  contents: read
+jobs:
+  pb01-pb02:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tests-redteam5b
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - name: Record checkout and install pinned dependencies
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/wallet-binding
+          git rev-parse HEAD > evidence/wallet-binding/checkout-sha.txt
+          git rev-parse HEAD^{tree} > evidence/wallet-binding/checkout-tree.txt
+          node --version > evidence/wallet-binding/node.txt
+          npm --version > evidence/wallet-binding/npm.txt
+          npm ci --ignore-scripts --no-audit --no-fund
+          git diff --exit-code -- package.json package-lock.json
+          sha256sum package.json package-lock.json octopass-wallet-binding-pilot.cjs octopass-wallet-binding-pilot.test.cjs > evidence/wallet-binding/SHA256SUMS
+      - name: Run PB01/PB02 signed EOA binding adversarial checks
+        run: |
+          set -euo pipefail
+          node octopass-wallet-binding-pilot.test.cjs 2>&1 | tee evidence/wallet-binding/test.log
+      - name: Upload isolated proof evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: octopass-wallet-binding-pilot
+          path: tests-redteam5b/evidence/wallet-binding/
+          if-no-files-found: error
+          retention-days: 90

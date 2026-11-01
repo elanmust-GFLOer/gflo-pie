@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "entries": [
+    {"id": "job-c", "status": "completed", "units": 350},
+    {"id": "job-a", "status": "completed", "units": 250},
+    {"id": "job-failed", "status": "failed", "units": 999},
+    {"id": "job-b", "status": "completed", "units": 400}
+  ]
+}
