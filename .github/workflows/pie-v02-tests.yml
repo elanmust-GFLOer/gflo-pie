@@ -2,18 +2,11 @@ name: PIE v0.2 Genesis and Path tests
 on:
   push:
     branches:
+      - main
       - feature/pie-core-v0.2
       - fix/pie-v02-build-baseline-20261020
-    paths:
-      - 'contracts/**'
-      - 'tests-v02/**'
-      - '.github/workflows/pie-v02-tests.yml'
   pull_request:
     types: [opened, synchronize, reopened, edited]
-    paths:
-      - 'contracts/**'
-      - 'tests-v02/**'
-      - '.github/workflows/pie-v02-tests.yml'
   workflow_dispatch:
 permissions:
   contents: read

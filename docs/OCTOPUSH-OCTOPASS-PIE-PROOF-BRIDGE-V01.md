@@ -1,11 +1,24 @@
 # GFLO Proof Bridge v0.1 — OctoPush × OctoPass × PIE
 
-**Status:** DESIGN / NON-PRODUCTION / no implemented connection. Base: `feature/pie-core-v0.2` at `a4e11cb467c2eae6f6baf2419aaa38aa653fdf16`. Existing PR #14 dependency work is separate; this document changes no contracts.
+**Current status (2026-11-01):** repository integration MERGED into `main` at `18b1ef168cae9eded38e8fa5998f1308627ab5ed` through PR #20–22. The canonical six-contract line and the local activity-evidence pilot are present. **NON-PRODUCTION / authentic OctoPush bridge NOT IMPLEMENTED / durable OctoPass binding NOT ACTIVE.** Main merge does not authorize deployment or proof authority.
+
+The original design/freeze baseline was `feature/pie-core-v0.2` at `a4e11cb467c2eae6f6baf2419aaa38aa653fdf16`. Historical inspection and frozen hashes below remain historical evidence. The dependency gate remains OPEN; see [current maintenance triage](MAIN-MAINTENANCE-2026-11-01.md).
+
+### Current implementation versus integration
+
+| Boundary | Evidence now in main | Still missing |
+|---|---|---|
+| Activity → review → XP → privilege → revoke | PR #20 local worker/checker subprocesses, signed disposable EVM transactions, 15 pilot checks; [pilot scope](LOCAL-ACTIVITY-EVIDENCE-PILOT.md) | Authentic OctoPush server events, deployed relay, independent organizational review |
+| Wallet control / binding | Historical PB01/PB02 EOA Map fixture, 18 checks, integrated through PR #21 | Durable backend, live session/consent integration; this fixture is not cookR SIWE plus separate read consent |
+| Canonical protocol | README six-contract tested line, XPPolicyV03 / EffectiveTierGate fixtures | Public v0.2 deployment and real protected application endpoint |
+| IF-02 read-only freeze | Frozen review inputs below retained | Runtime adapter and cross-repository acceptance; AUD-01 / INV-10 remain OPEN |
+
+PB01–PB12 below remain live-bridge acceptance requirements, not a claim that the new local pilot is absent or that these integration gates pass.
 
 ## 1. Grounded inventory (read-only application inspection, 2026-10-21)
 - OctoGFLO Sovereign Lovable project `1bd6a65f-35c7-4257-826e-e49f2e0d7521`, last edit 2026-10-18, commit `7a2372a6e5a66e6d4d11e066c5a77e3f0835c0a7`: `src/domain/engine.ts` is a deterministic local simulation; `fixtures.ts` uses DEMO claim IDs, a DEMO wallet and DEMO XP. `src/domain/octopass-adapters.ts` declares interfaces but explicitly states these are not implemented in MVP 01; OctoPush gateway `src/lib/links.ts` is navigation-only (no shared auth/state).
 - OctoChain Collective / OctoPush Lovable project `fafc7193-490d-4527-be77-4296369a300b`, last edited 2026-09-13. `src/components/app/AppShell.tsx` uses Supabase auth and a profile hook; `.lovable/plan/octopass-identity-4-modul-élesítése-2026-08-12.md` proposes the OctoPass profile/visibility model, but a plan is not evidence that an identity or wallet-binding integration is live.
-- GFLO `gflo-pie` PR #11–13 have been merged into the above development base; P0/P1 contract test evidence is separately documented. Development-branch merge is not main, release or production acceptance. PR #14 remains draft and dependency acceptance OPEN.
+- GFLO `gflo-pie` PR #11–13 have been merged into the above development base; P0/P1 contract test evidence is separately documented. This is the historical October inspection. PR #21–22 subsequently integrated the development line into main; dependency acceptance remains OPEN and no release/production acceptance follows.
 - **No observed live authenticated OctoPush→OctoPass→PIE event source, cryptographic wallet-binding backend, proof relay, or application-level EffectiveTierGate consumer.** Do not imply integration is working.
 
 ## 2. Future end-to-end vertical slice (outside the IF-02 read-only gate)
@@ -80,7 +93,7 @@ The PB01–PB12 IDs below are bridge acceptance requirements, not the names or c
 | PB09 | Challenge complete | only valid finalized XP counts toward EffectiveTier | V03/EffectiveTierGate candidate fixtures only; approved source, release and real bridge consumer UNVERIFIED |
 | PB10 | Real privilege consumer | allows valid, denies insufficient, paused, revoked, stale and RPC-error states | cookR final-delivery checks are a read-only transport boundary, not an on-chain Tier consumer. Real application consumer NOT_IMPLEMENTED |
 | PB11 | Data minimization | no raw personal profile in on-chain logs or public proof payload | Local fixture privacy rules do not establish production retention, visibility consent or on-chain disclosure compliance; E2E UNVERIFIED |
-| PB12 | Exact-tree reproducibility | pinned integration SHA, actor source code, test logs, event samples and artifact hash | Local docs/schema candidate checks only; corrected remote head, GitHub prospective-merge CI and independent sign-off PENDING |
+| PB12 | Exact-tree reproducibility | pinned integration SHA, actor source code, test logs, event samples and artifact hash | Local docs/schema candidate checks only; local pilot CI is recorded separately; exact cross-repository runtime head/CI and independent bridge sign-off PENDING |
 
 ## 6. Non-production OctoGFLO visibility slice
 A separate, approval-gated Lovable change can add a **Development Evidence** area with two explicitly different sources:
@@ -95,7 +108,7 @@ An ordinary external navigation link to OctoPush must not be presented as live d
 4. **PIE bridge:** authorized attestation into existing XPPolicy, PENDING→finalize/revoke, exact policy digest checks.
 5. **Application-level consumer:** effectiveTier fail-closed enforcement, recovery/appeal/privacy and complete E2E red-team evidence.
 
-**Separate approvals required:** app changes and publish, contract change, new proof authority, main branch, external RPC, testnet and production deployment. This PR authorizes none. No main or Lovable application edits have been made by this design work package.
+**Activation boundaries:** the owner has merged repository integration through PR #22. App changes/publish, new proof authority, external RPC and testnet/production activation remain separate actions; the historical design work did not activate them.
 
 ## 8. IF-02 contract freeze and documentation-only acceptance
 
@@ -158,5 +171,5 @@ JSON Schema validates structure, required fields, enumerated realms/versions and
 **AUD-01 / INV-10 remains OPEN.** Operational-role quarantine does not prove privileged-owner-resistant audit. Preserve the frozen0A failed concurrent-consent oracle and all red evidence; later green runs do not erase failures or approve a historical waiver. The separate worker correction `89abb35b18b2ad6120ff5d014a81cecf391e13f2` is not contained in the cited cookR #18 head; IF-01 records its mixed-cohort FAIL and current-code PASS separately.
 
 **A:** documentation acceptance into `feature/pie-core-v0.2` only requires the exact final base/head/ordered merge parents/tree, one-file docs scope, hash-verified accessible evidence, schema ledger, independent review of that exact patch and explicit owner merge approval. Local checks are not prospective-merge CI; missing checks are UNVERIFIED.
-**B:** code integration into gflo-pie main is not authorized. **C:** cookR laboratory integration remains BLOCKED pending its own aggregate/review/historical gate. **D:** staging and production activation remain BLOCKED.
+**B (updated 2026-11-01):** repository code integration into gflo-pie main was performed by the owner through PR #21–22; it does not close IF-02 runtime acceptance or authorize activation. **C:** cookR laboratory integration remains BLOCKED pending its own aggregate/review/historical gate. **D:** staging and production activation remain BLOCKED.
 **Pilot 0D-2: HOLD. Production: BLOCK.** No deployment, migration, privilege activation, real wallet binding or on-chain transaction is authorized by A.

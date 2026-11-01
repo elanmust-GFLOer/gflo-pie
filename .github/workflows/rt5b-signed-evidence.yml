@@ -2,29 +2,14 @@ name: RED TEAM 5B signed EVM evidence (isolated)
 on:
   push:
     branches:
+      - main
       - fix/rt5-15-policy-pause-failclosed-20261020
       - security/verified-contribution-gate-20261020
       - feature/pie-core-v0.2
       - security/ci-provenance-gate-20261021
       - pilot/octopush-evidence-e2e-20261101
-    paths:
-      - 'contracts/**'
-      - 'scripts/gflo-redteam5b1-proof-tamper-revocation.mjs'
-      - 'scripts/gflo-redteam5d-erc1271-signers.mjs'
-      - 'scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs'
-      - 'scripts/gflo-redteam5c-tier2-pause-consumer.mjs'
-      - 'tests-redteam5b/**'
-      - '.github/workflows/rt5b-signed-evidence.yml'
   pull_request:
     types: [opened, synchronize, reopened, edited]
-    paths:
-      - 'contracts/**'
-      - 'scripts/gflo-redteam5b1-proof-tamper-revocation.mjs'
-      - 'scripts/gflo-redteam5b2-praxis-revocation-consumer.mjs'
-      - 'scripts/gflo-redteam5c-tier2-pause-consumer.mjs'
-      - 'scripts/gflo-redteam5d-erc1271-signers.mjs'
-      - 'tests-redteam5b/**'
-      - '.github/workflows/rt5b-signed-evidence.yml'
   workflow_dispatch:
 permissions:
   contents: read

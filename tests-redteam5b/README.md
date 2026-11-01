@@ -3,6 +3,10 @@
 Status: **CI PASS for the declared local signed-transaction fixtures, NOT a protocol audit,
 live OctoPush evidence attestation, production approval or public-network deployment**.
 
+## Current checkpoint (2026-11-01)
+
+The local activity pilot was merged through PR #20 and the development line reached main through PR #22. The workflow also runs 5C, mutation/oracle controls and ERC-1271 cases added after the historical 5B evidence below. See [pilot scope](../docs/LOCAL-ACTIVITY-EVIDENCE-PILOT.md). These remain isolated fixtures; deployment and authentic external-event integration are unapproved/unimplemented.
+
 ## Reproducible isolated environment
 
 On a Node.js 22.23.3 environment, from `tests-redteam5b/`:
@@ -63,5 +67,6 @@ configuration only.
 5. Contract-account ERC-1271 rejection cases, signer collusion, off-chain
    evidence review, mutation testing, dependency vulnerability review, and
    independent EVM-client/security audit are outside this acceptance.
-6. The PR should stay **draft and unmerged** pending independent review, checks
-   on the exact final commit, and explicit merge authorization.
+6. The original draft-only review condition was historical; the owner merged the
+   development line through PR #22. New changes still require exact-commit review;
+   repository merge does not authorize deployment or close production gates.

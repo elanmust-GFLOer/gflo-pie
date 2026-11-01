@@ -5,6 +5,10 @@
 **Immutable candidate:** `feature/pie-core-v0.2` at `a4e11cb467c2eae6f6baf2419aaa38aa653fdf16`  
 **Scope:** source review, Etherscan V2 query of chain ID 11155111, immutable deployment receipts; **no execution of verification submission, deployment, token operation or merge**. See [#17](https://github.com/elanmust-GFLOer/gflo-pie/issues/17) and [#18](https://github.com/elanmust-GFLOer/gflo-pie/issues/18).
 
+## Current checkpoint — later 2026-11-01
+
+PR #20–22 integrated the six-contract canonical line and local activity pilot into main at `18b1ef168cae9eded38e8fa5998f1308627ab5ed`. This is a repository merge, not a public-network release. The legacy source search and verification subsequently completed: all four legacy addresses have verified source/ABI, as recorded in [DECISION-001](DECISION-001-v3-retirement.md). The token is **MockGFLOToken**; verification does not repair its open faucet or the other legacy incompatibilities. The NO entries in the historical table below describe the earlier query, not current explorer status. No v0.2 deployment is established. Current CI/dependency disposition: [maintenance](MAIN-MAINTENANCE-2026-11-01.md).
+
 ## 1. Legacy Ethereum Sepolia contract manifest (NOT PIE v0.2)
 
 | Contract | Address | Deployment tx | Receipt status | Public verified source? |
@@ -31,7 +35,7 @@ Create immutable entries containing:
 
 ## 3. PIE v0.2 reproducibility baseline
 
-Relevant candidate source: `PIECoreV02.sol`, `XPPolicyV03.sol`, `TrustedXPSourceRegistryV02.sol`, `EffectiveTierGateV01.sol`, `GFLOIgnitionV01.sol`, `PIECoreIgnitionV01.sol`. Consult the full frozen contract tree, lockfiles, workflows and **exact candidate SHA**. Keep historical main/legacy contracts separate.
+The current six-contract tested line is recorded in README. `PIECoreV02.sol` is the Genesis/Path reference, not the tier-bearing core. Historical candidate source list: `PIECoreV02.sol`, `XPPolicyV03.sol`, `TrustedXPSourceRegistryV02.sol`, `EffectiveTierGateV01.sol`, `GFLOIgnitionV01.sol`, `PIECoreIgnitionV01.sol`. Consult the full frozen contract tree, lockfiles, workflows and **exact candidate SHA**. Keep historical main/legacy contracts separate.
 
 Mandatory proof bundle:
 1. Pinned source revision + SHA-256 build manifest of sources, lockfiles, compiler and dependency graph.
