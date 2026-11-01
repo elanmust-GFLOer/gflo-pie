@@ -39,6 +39,12 @@ function verify(e, expected) {
 }
 module.exports = { canonical, hash, verify };
 if (require.main === module) {
-  const { evidence, expected } = JSON.parse(fs.readFileSync(0, "utf8"));
-  process.stdout.write(JSON.stringify(verify(evidence, expected)));
+  try {
+    const { evidence, expected } = JSON.parse(fs.readFileSync(0, "utf8"));
+    process.stdout.write(JSON.stringify(verify(evidence, expected)));
+  } catch (error) {
+    // Keep the machine-readable verdict separate from runtime stderr warnings.
+    process.stdout.write(JSON.stringify({ error: error.message }));
+    process.exitCode = 1;
+  }
 }

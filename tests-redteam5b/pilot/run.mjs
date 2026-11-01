@@ -85,7 +85,8 @@ await check("separate checker process recomputes and accepts the worker result",
 function checkerRejects(changed, reason) {
   const result = child("evidence-checker.cjs", { evidence: changed, expected });
   assert.ifError(result.error); assert.equal(result.signal, null);
-  assert.equal(result.status, 1); assert.match(result.stderr, new RegExp(reason));
+  assert.equal(result.status, 1);
+  assert.deepEqual(JSON.parse(result.stdout), { error: reason });
 }
 await check("wrong output with recomputed hash is rejected before signing", async () => {
   const changed = clone(evidence); changed.output.totalUnits = "999999";
