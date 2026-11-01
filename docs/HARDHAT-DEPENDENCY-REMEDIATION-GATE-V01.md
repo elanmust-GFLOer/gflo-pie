@@ -1,6 +1,8 @@
 # GFLO PIE v0.2 — Hardhat dependency remediation gate v0.1
 
-**Status (2026-10-21): TARGETED FIX VERIFIED / FULL DEPENDENCY ACCEPTANCE OPEN / NO MERGE APPROVAL.**
+**Current checkpoint (2026-11-01):** the old dependency branch was integrated into main through PR #21–22. Current fixes, individually recorded remaining advisories and the rejected Hardhat update are in [main maintenance](MAIN-MAINTENANCE-2026-11-01.md). The acceptance gate remains OPEN. The dated inventory and approval statements below describe the original October work; they are not current branch status.
+
+**Historical status (2026-10-21): TARGETED FIX VERIFIED / FULL DEPENDENCY ACCEPTANCE OPEN / NO MERGE APPROVAL.**
 
 This document supersedes the earlier *planning-only* status. The scoped `tmp` and `ethers/ws` upgrades are real and recorded in an npm-resolved lockfile. The remaining Hardhat 2.x advisory exposure is **not fixed or silently risk-accepted**. The corresponding PR must remain DRAFT until independently reviewed against its final exact base, head, merge tree and CI evidence.
 

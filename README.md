@@ -32,7 +32,7 @@ XP read from `0x9CF55d0b…` is self-mintable. Never present it as reputation.
 
 ## Running the tests
 
-CI runs every suite on each pull request. Locally with Node 22:
+The offline Genesis/Path, signed EVM, wallet fixture and dependency workflows run on every pull request and every push to `main`; no path filters skip documentation changes. The historical live-Sepolia audit is separate. Locally with Node 22:
 
 ```sh
 cd tests-redteam5b
@@ -45,7 +45,7 @@ npm run test:activity  # activity → XP → access → revoke pilot
 
 ## Trust limits
 
-A valid signature proves an attestor's assertion, not that real-world work happened. Issuer/attestor/governance collusion remains an open, documented risk. The `tests-v02` dependency audit gate (Hardhat 2 dev dependencies) is open by design.
+A valid signature proves an attestor's assertion, not that real-world work happened. Issuer/attestor/governance collusion remains an open, documented risk. The `tests-v02` dependency audit gate (Hardhat 2 dev dependencies) remains OPEN because unresolved advisories are not accepted. See [current maintenance and triage](docs/MAIN-MAINTENANCE-2026-11-01.md).
 
 ## Related
 

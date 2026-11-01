@@ -1,0 +1,344 @@
+{
+  "comparison": "BASELINE_VS_CLEAN_PATCHED_BUILD",
+  "artifactsCompared": 67,
+  "result": "ALL_ABI_CREATION_RUNTIME_HASHES_IDENTICAL",
+  "baselineCommit": "18b1ef168cae9eded38e8fa5998f1308627ab5ed",
+  "serialization": "SHA256 of Python json.dumps(field,sort_keys=True) UTF8; bytecode fields are hex strings, not raw EVM bytes",
+  "hashes": {
+    "@openzeppelin/contracts/utils/StorageSlot.sol/StorageSlot.json": {
+      "abi": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "bytecode": "9811571ccf807f19ddd331c8ef23ca98dd9ea75b319b08f217c9d6679fa34d45",
+      "deployedBytecode": "a8a2b972db2e655eec29f93e1b110b346202d794516e6192bc193bc875dc474d"
+    },
+    "@openzeppelin/contracts/utils/Panic.sol/Panic.json": {
+      "abi": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "bytecode": "8e1f3800c07cd99c4dd34eefbb798fc04abd041aa1448c53fbe791a206a273d8",
+      "deployedBytecode": "879eac9ad4d4a2d8ac8a808f6658c2dddd1ead986fb170b3a069fce8650c183d"
+    },
+    "@openzeppelin/contracts/utils/Strings.sol/Strings.json": {
+      "abi": "35af48b317d559894c800aa905bf83db02ab176a0f06b18160326bafe8c4ee6f",
+      "bytecode": "5732d78ca1373a1181293a840b34ddbe491ba4e27429c27226f8f52018d05bbd",
+      "deployedBytecode": "84e7ee6fb6fe33e3bbd4ecb168671981d401b1fbb65a7774f3cfe90e1e5977ad"
+    },
+    "@openzeppelin/contracts/utils/Context.sol/Context.json": {
+      "abi": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    "@openzeppelin/contracts/utils/Bytes.sol/Bytes.json": {
+      "abi": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "bytecode": "faf58e4031ec1b1d456825d40f92ba2f8c7ec85c8845b66e9187aed3db61354e",
+      "deployedBytecode": "a92330c9bd0b5b01dd03bac40d59d7f911a0af79bb054c32e755f3fb063d3cf3"
+    },
+    "@openzeppelin/contracts/utils/ShortStrings.sol/ShortStrings.json": {
+      "abi": "9a3adb97fc79d48bc230b58a79c5aa77a1e108806dc2553f53d65beab04cc572",
+      "bytecode": "5efd53e981b6101f11078340710a1d6a4dac2c49277148978aaef5729d45066f",
+      "deployedBytecode": "36977d1011090ae67bde93b01b74dde766f08c5ae4f5b77f67115e13cda917f2"
+    },
+    "@openzeppelin/contracts/utils/math/SignedMath.sol/SignedMath.json": {
+      "abi": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "bytecode": "2722ab11e0d9792299b60c16317318c4671cf782592686c1486bd85a2a3c8750",
+      "deployedBytecode": "479fdfa35a299c3aee69222788a19c1206a1c8a2a63cac1888d0008ec00b7e8e"
+    },
+    "@openzeppelin/contracts/utils/math/Math.sol/Math.json": {
+      "abi": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "bytecode": "d9246184bbc0d93571f684ea0a5f15dce7e0b75333ab26cf1b07d96cc1a21868",
+      "deployedBytecode": "719ba95d461bfd91f0ab35661be85fd77007d62844b2887dc176e9d2c8431c4e"
+    },
+    "@openzeppelin/contracts/utils/math/SafeCast.sol/SafeCast.json": {
+      "abi": "7467fda863100eca722e658168b25a2e3dd7f15b3c9e9163c0b2c4d4f69fbec0",
+      "bytecode": "5cfbb4975cd4cb6085c956d4ba324a6d70af0efc68cf336d68c1676894cd998a",
+      "deployedBytecode": "780debc98558c5085052068151519cac1f678262d21574288981c6389c0653c4"
+    },
+    "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol/SignatureChecker.json": {
+      "abi": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "bytecode": "b571e061dd01f5419182e30b0d706fb5c37fdd0dde5490f1a9027be51758a2ad",
+      "deployedBytecode": "2e13dacb650c9d1d239abb372939bc5b3b84b063fb2b6242e965d3909a751660"
+    },
+    "@openzeppelin/contracts/utils/cryptography/ECDSA.sol/ECDSA.json": {
+      "abi": "121898099cc024a61edc873f09bc771dfcd18f509be87d3c4b2c1613ea64237d",
+      "bytecode": "6ae23b31ab99a7dfb4f0ee2259819b114b4cc2279775e0fabbd3775a228a2506",
+      "deployedBytecode": "68309c6c8aabf091c7e51f48b5c3da72f4c0a278bcacd3b40bc4747cbca33d8d"
+    },
+    "@openzeppelin/contracts/utils/cryptography/EIP712.sol/EIP712.json": {
+      "abi": "a39b67b411479e7f93c037b1bc64592d35c376875c2ea58d62b173c9a8534db6",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol/MessageHashUtils.json": {
+      "abi": "0a229337669e3cd98d8833ef9af7482306f07d45c2e3f14026a764bc677e84a9",
+      "bytecode": "b31b13b3ae6024c264ec79625451e9b513e50e5ab461a4b61ae38ca93580fcec",
+      "deployedBytecode": "3ed6ad39d48d8fbc69fcd850106fdcb4844e487b62a6c1e3f580f0b19eda1d52"
+    },
+    "@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json": {
+      "abi": "24ab49108f1d58c580b28eb3aac569a46c2e298a093d0157b4e023eb26a12da6",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    "@openzeppelin/contracts/token/ERC20/IERC20.sol/IERC20.json": {
+      "abi": "361e0a2582d9d63c57f0c983ee732798df810e0a5f5ba0b3fbc839441b886702",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol/ERC20Burnable.json": {
+      "abi": "5a97b2708be6ff7ff7de16fad407d4b7e2a220a88fa27276d41c85eb94ec8e58",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol/IERC20Metadata.json": {
+      "abi": "8dc75619aea07e489700f0ba3b441aed33713f859f9128544cd6104a3bcd96a5",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    "@openzeppelin/contracts/interfaces/IERC5267.sol/IERC5267.json": {
+      "abi": "befd6bcffb909af50918aad2c39ef714c4b1fcfb2a2aec694fe05508f4000a8d",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    "@openzeppelin/contracts/interfaces/draft-IERC6093.sol/IERC721Errors.json": {
+      "abi": "ef48cdb7f6372d9d72836a17da8b9e195a633a0893270a1174ca47606ff27bb1",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    "@openzeppelin/contracts/interfaces/draft-IERC6093.sol/IERC1155Errors.json": {
+      "abi": "5577c77090a83b9922a9ea38bfef70ea4ba133af33e294e0df7659e8f27c5822",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    "@openzeppelin/contracts/interfaces/draft-IERC6093.sol/IERC20Errors.json": {
+      "abi": "d4726f34c873def386062e4a78d374587c7ca8f83175cf6048c2564145ab34e2",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    "@openzeppelin/contracts/interfaces/IERC1271.sol/IERC1271.json": {
+      "abi": "fc051707bbe60a87e9b5ec910f8bb162e5988878c20204349b33e2bd0f483b0c",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    "@openzeppelin/contracts/interfaces/IERC7913.sol/IERC7913SignatureVerifier.json": {
+      "abi": "d5e3198c396f34949ec54a1e9bf6e7fc9841140d85cbc99a3077a8c37bc4035a",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/GFLOFixedSupplyV01.sol/GFLOFixedSupplyV01.json": {
+      "abi": "3f7a4d50e06fc902bfdd9864758fdf67be26c1d4619f28c86b6a1255d43ab058",
+      "bytecode": "5284cf186c703a0c0667b810154c942453ff60960362798126d968470b486cf5",
+      "deployedBytecode": "2fc1af33ea7d402cf44cdca76a914e7a95614a60c486efea1b20d02cfb72691d"
+    },
+    ".sources/contracts/CanonicalXPAdapterV02.sol/CanonicalXPAdapterV02.json": {
+      "abi": "b1ef58f01b55bc52dad35dfff4f0e44f0e62790281b90732d4a3ee43a57cb0ee",
+      "bytecode": "2ddb93998b04ee5e96a53c5422f9a8252fb0b43e62209fe622f3d0939e7630f9",
+      "deployedBytecode": "803b4a8e3f3fae1a4a7f21995567602916e7593c908c1d814eb38cba792153ac"
+    },
+    ".sources/contracts/CanonicalXPAdapterV02.sol/IXPPolicyForCanonicalXP.json": {
+      "abi": "7595cdc9ad7302f4ebf7463703ff1c6e95a0e9fbc403bd5563c42c3c2b02659e",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/CanonicalXPAdapterV02.sol/IPIECoreForCanonicalXP.json": {
+      "abi": "955001ab05f15af837b1dc8b34c0c8686fd6c2756e182c7adc82ee9906cd4499",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/GFLORegistryQuorumV02.sol/IGFLORegistryGovernanceV02.json": {
+      "abi": "43c35bd8fb3da041d6a14d5233c5934cedbf4d4ab582c6d7e2429e227749ee14",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/GFLORegistryQuorumV02.sol/GFLORegistryQuorumV02.json": {
+      "abi": "fb2306e169a5847c354f54b5f205271e197ca6318d722682201f71a7d0617701",
+      "bytecode": "dfb042c7498f49da73b02df611dc1f64dc230f172924a374ff083be1ed901761",
+      "deployedBytecode": "5a92edbd97db9c6da2f784458d93e3ea2b852ff01d00cf1859da2183e1d90473"
+    },
+    ".sources/contracts/XPPolicyV03.sol/XPPolicyV03.json": {
+      "abi": "cfb2fc8fe05f34edd907959c50665ef65bf5ce2989e68f49a5f7557e1924a8cb",
+      "bytecode": "63dee9ba3c6e25b3aea981f566dc1fa26b7f04bb8dd591afa045b8777b34ee9a",
+      "deployedBytecode": "40b904c92ea0de3b3991ea1ccb47560018e596adcec7dd618ef11c08fd677ce3"
+    },
+    ".sources/contracts/XPPolicyV03.sol/IPIEForVerifiedXP.json": {
+      "abi": "85e5030d3e733d32466bd9616a8bc98268c4e2add36d40dbcea3f95d0de2a95f",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/CanonicalXPAdapterHashGuardV02.sol/ICanonicalPolicyV02.json": {
+      "abi": "ec97dc82116e7b398ab65f317dcc4dbab8e74d4797509c1e1adc25933fedb322",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/CanonicalXPAdapterHashGuardV02.sol/ICanonicalCoreV02.json": {
+      "abi": "7bf440dc7e4e6e6a256dfdfe5a92dc42269c9abb2b6e2047551570997c5c10f9",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/CanonicalXPAdapterHashGuardV02.sol/CanonicalXPAdapterHashGuardV02.json": {
+      "abi": "68e314b376ea2df501cb50865847d42e8a4323b799e81d6bcf8a453259b7a0ab",
+      "bytecode": "d7d0aa381b3e5a664297ef0ad7a5715fd05255d51df7b4e6a79503d2568e6962",
+      "deployedBytecode": "4617062f15621b0f5f5b2d01274b9a37b764b151ddf10f50b7e2e19f343d3240"
+    },
+    ".sources/contracts/GFLOIgnitionV01.sol/IExactBurnGFLO.json": {
+      "abi": "6c1b372d3a17015dc49be27dff46044f4c6acdb8b0a890aafa2e2073550bdb22",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/GFLOIgnitionV01.sol/ICanonicalXPForIgnition.json": {
+      "abi": "277fa2cdc051e16214f923bc1eda350f3ef011e2bbbf69d9910e7c1c0871013a",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/GFLOIgnitionV01.sol/IPIEIgnitionCore.json": {
+      "abi": "653925419ad33a3630f35fd25f946a6e04352bd5fa2657061ecda157918369fa",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/GFLOIgnitionV01.sol/GFLOIgnitionV01.json": {
+      "abi": "d57201b9f63132853a46f0f89f5cd665b54b17955b8a930ec2c4cc0ef4440233",
+      "bytecode": "5a3fdcd6d379566dbf02341a635042200bcb0b27ec0c45a3318ee00877b11709",
+      "deployedBytecode": "113d63dae41700f6991dc824dd32255a954a0e7387e841c8cd54d60bddde5b15"
+    },
+    ".sources/contracts/XPPolicyV02.sol/XPPolicyV02.json": {
+      "abi": "b92a39ebe3e23bb3c1e6cbfb84a7fb1ebdbd876d7825b782f8fc90f32795117f",
+      "bytecode": "a2c0e9474e2e1986757528c0753c04bbf2a8ead55fb285d3a1f800ed19238e29",
+      "deployedBytecode": "0c54a12a252ee9655885385643d411a48598b9b3fbd72bac7106f996d8e1bfa2"
+    },
+    ".sources/contracts/XPPolicyV02.sol/IPIEIdentityV02.json": {
+      "abi": "9403ff389ffbe6954da1a4511ba07128bba5ac7fca70b597c3ef6f289f2d6d09",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/Lock.sol/Lock.json": {
+      "abi": "dfe2c179c12558c1de22da19767764cde19695d8839a228df8b2347a5fe91421",
+      "bytecode": "ee8d3e4b7fda2087bcde84da3ca2c612d77666bc5f9e6c597a223c469537404e",
+      "deployedBytecode": "63b0f68401661a7f9f652346dba244e41d1a12de45a34f0139885588a6be1605"
+    },
+    ".sources/contracts/PIECoreIgnitionV01.sol/PIECoreIgnitionV01.json": {
+      "abi": "65556d3d4d385a6ac53a8d0b9fe93a79551bb35a967db818c1c196ea75f4c9e4",
+      "bytecode": "a090628cfd47298fada9aad8d060c590cfc8757ec921719f12ded2fd6fe6e757",
+      "deployedBytecode": "9543552c5a2dee5b09d50b3de22c67acef89a15b16a18d9d417d2368359a98db"
+    },
+    ".sources/contracts/MockGFLO.sol/MockGFLO.json": {
+      "abi": "5f5741661cf0eaf9f6e1c294ce816f1af1b284337f520b13d66cbb8da2137531",
+      "bytecode": "554d791f29ab52d0008ab3a3ccd998fa01ffe9f9d21f74f0de10e26217887e14",
+      "deployedBytecode": "c9a89d06cf816cb6540e6486bc0eb8e819a2c218d7f8f5fc791371e44a07809f"
+    },
+    ".sources/contracts/GFLORegistryQuorumV03.sol/IGFLORegistryHandoffV03.json": {
+      "abi": "43c35bd8fb3da041d6a14d5233c5934cedbf4d4ab582c6d7e2429e227749ee14",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/GFLORegistryQuorumV03.sol/GFLORegistryQuorumV03.json": {
+      "abi": "16907a8f1fcc327963bde420e662ac2b32fd91603fa7d1cf9ac75faa79f7b32c",
+      "bytecode": "7108c97469571d470ba37a65787143eef93b5bf931fecbf6f7f67a31f7f1688f",
+      "deployedBytecode": "2fb976ddadbf1f8a1ce47d37d0b673264be124488db5c662e5ed28a8b6348801"
+    },
+    ".sources/contracts/PIECoreV02.sol/PIECoreV02.json": {
+      "abi": "48da2f052b6ff38bc4e72b51086e2a91b421ce6d5760df0b34e763c899f14e8c",
+      "bytecode": "4107ce845019b59914ed7bb1814a53f499a5d219ab2472cd88b16f89f8e43bee",
+      "deployedBytecode": "65dc05ad6437181615db56cd84fd44fd608fd311397cac68dc4e5ff1d5beebb1"
+    },
+    ".sources/contracts/TrustedXPSourceRegistryV02.sol/IXPPolicyTrustV02.json": {
+      "abi": "a1569c6bbe9db9454f2d3578fe28d451899794f360970dd5eee6e60501513278",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/TrustedXPSourceRegistryV02.sol/TrustedXPSourceRegistryV02.json": {
+      "abi": "b1bf4cb68845d28198ebbb2cd0c13cb13fd8921fc0f42f3704e5f53d47c3485d",
+      "bytecode": "37476031da7754d5d67924d1d56de94646c555e8c687b5d337ae48bf1f57e1b3",
+      "deployedBytecode": "4662f74cf336db3ce56c9a7f831d8654280ea45ad6af414c061fdb5ec1607f94"
+    },
+    ".sources/contracts/EffectiveTierGateV01.sol/EffectiveTierGateV01.json": {
+      "abi": "7efad6c155af6ec42027abf8628352e336bafab8f3f1af32a6bda9816d21f841",
+      "bytecode": "fe5e0cd63c3e511766919f3541805733e9315ef46cb6a3ba0c51280e074cb0e6",
+      "deployedBytecode": "02404dcb61d1891560615e163a603a04dee728c58a4887e0e75f451d4197b6e5"
+    },
+    ".sources/contracts/EffectiveTierGateV01.sol/IPIEGateCore.json": {
+      "abi": "adc302bb76cb3c4c9813d4d930909455c7799019e9dc604365a54f813313c750",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/EffectiveTierGateV01.sol/IXPRegistryGate.json": {
+      "abi": "dbf2b1f90684b71dd161a82468ed771b935e106f6d3ebba57fb56400f69dfae6",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/PIECore.sol/PIECore.json": {
+      "abi": "c03623e7fe61b6deeb4d1d3c0fc664507e6a0c297e0f484df217a794180f18ee",
+      "bytecode": "3a201a99d03532871caec15b6f619efec66471e588de85659ff8ebee573507de",
+      "deployedBytecode": "c8b3ef6dde175b365a796b0f53f09a109f5624ed5e7585b3fc18adbd73202c52"
+    },
+    ".sources/contracts/PIECore.sol/IGFLO.json": {
+      "abi": "f9d1eaa64b886d196a2c776184ce7a6fff65cc97e919d959a99096d70137ab97",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/test/ForgedXPPolicyWithOwnerMock.sol/ForgedXPPolicyWithOwnerMock.json": {
+      "abi": "7a6d32fbe1842e162b8bedc6cd28ef56349579ebf94dc099a654d33db775684e",
+      "bytecode": "0dc05c2de4983150811874480b4b29ed3a03ffb9af3c1045e087d533ae65d8e7",
+      "deployedBytecode": "8271a01668dab7557c8121a7913b6c352de645c60f03b95e6027fa77a2bb1ab1"
+    },
+    ".sources/contracts/test/MaliciousXPPolicyMock.sol/MaliciousXPPolicyMock.json": {
+      "abi": "d573e2e9b5abe6821cdb74b2ee7a5d99cc8c36d45a9aae1d47bef819545aebf7",
+      "bytecode": "797945eab1efd16b8f5c25550564b8c60cb2ab4fdd4268aaec17ceaa092dfd4c",
+      "deployedBytecode": "0ab2cd460fac9ebbf926602d2ff81df9a65d97ed9b41f08cc4bcf62b1fed3bae"
+    },
+    ".sources/contracts/test/GFLOFaultBurnTokenV01.sol/GFLOFaultBurnTokenV01.json": {
+      "abi": "11599ce8868e1c6bea758e1bb19ae4cbc98d2dce21562322b745852697437045",
+      "bytecode": "1910d003bc759a49f2336b219774d8d79dd636787feaeadbec4be34ff371463d",
+      "deployedBytecode": "d3e63fcd47d5a27cc340a5209082ed2fa4e76ba07d8c6fc9412d6e49c3225cb2"
+    },
+    ".sources/contracts/test/GFLORT5BTierConsumer.sol/GFLORT5BTierConsumer.json": {
+      "abi": "b38edcdcade91a1127d4a82449a13c6b546aacf54672ea22e2117cbd69087e70",
+      "bytecode": "bed1b5473225a9eccf59042a419b4489e7a3931dae6ecd4e9614a383e6b407e6",
+      "deployedBytecode": "8b81313364ca1430f7290d592c0ad761134d66fb2dadd169ce955a59196150ea"
+    },
+    ".sources/contracts/test/GFLORT5BTierConsumer.sol/IEffectiveTierGateRT5B.json": {
+      "abi": "9243c7cd60c15fafc6378306bae963aceb252ad14ba0def4cfe9491d62f303c9",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/test/GFLOERC1271AdversarialMock.sol/GFLOERC1271AdversarialMock.json": {
+      "abi": "3e894c4fecdb7acf4dfa080af1ad857a7dfb2e54006e3489d4f87a37ae7e3d7d",
+      "bytecode": "e0ce4e7d7b4979d70fbb4cc3c39638c14df0c55950ae237ac2b76f4749b7c5d5",
+      "deployedBytecode": "252de06a7979aa685e4e0b55b663c427693e7ec097a27bc1d2e35526892ace28"
+    },
+    ".sources/contracts/test/GFLOSmartAccountSignerMockV03.sol/GFLOSmartAccountSignerMockV03.json": {
+      "abi": "4365df1f6dad9125bfe95444b5249115b973ef2d1ec67e78e1a8c16510a7def6",
+      "bytecode": "3a1900f23f022b53fb59185170023d2b27eecd7ac4929f93135a93604e0e923b",
+      "deployedBytecode": "4da1521658df246b5cdae2cca17b8c0909ad463284d1d91660a6cf63dfdf3724"
+    },
+    ".sources/contracts/test/GFLOReceiptAttackTokenV01.sol/GFLOReceiptAttackTokenV01.json": {
+      "abi": "bf1ed51d758bc4fc655793184ea9ce433b1362cd671f48278549ee34bd0b5f8f",
+      "bytecode": "a8a61bc924d33692d5dd5aa9f07e9ffcabe1505473fc05a29580f8d046df85b8",
+      "deployedBytecode": "76f7c1de67339b68472bcfeffd03e1855d7c53da832db5bd9ca1cbfc75a983f7"
+    },
+    ".sources/contracts/test/GFLOTestBurnTokenV01.sol/GFLOTestBurnTokenV01.json": {
+      "abi": "2a1a8fb3f219339791d174c1c048d9015e8860f32aeb3e1afe569c1c512a7af7",
+      "bytecode": "1056a872ab9ac7b6858faf47f7fcabc3848c2f9a867456d76f44c1ae83f82dd3",
+      "deployedBytecode": "465c746fc0efaed1be6b68636cc17975777fa1e6ea733fd1daaf265f22b89f52"
+    },
+    ".sources/contracts/experimental/XPPolicyV05MultiSource.sol/XPPolicyV05MultiSource.json": {
+      "abi": "020563f86e9cfcac06a6ef65f4e8649b023df945524bd083e320ed86a9169872",
+      "bytecode": "a8b6619ff8e6f3d967c376f1bd229759f01e177bfce3d70b82b27fdb4319dc0b",
+      "deployedBytecode": "c8fe0caa84d7b9d27cd10fa934043918dac78a7d0746cd74b742be3cc955613b"
+    },
+    ".sources/contracts/experimental/XPPolicyV05MultiSource.sol/IPIEV05.json": {
+      "abi": "84841ecd2ac2de0d9dc0e670ee79fc03db3ccd862b40ceb6fb501b757e3c8733",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/experimental/GFLOSourceBoundAttestorV01.sol/GFLOSourceBoundAttestorV01.json": {
+      "abi": "0b8635f328f39b8fbb49b8512554ecaffc2b09fd51aaed9acc562c6a83c5b0cc",
+      "bytecode": "96edd78e63f2345ffb73fb4c655493c9c05a4b0b14722d3e5d7d95ac9d5be1fc",
+      "deployedBytecode": "ddc0eb526702636cb6e58660f7c04eb70f30b722a9f1bb9e2f539afdb9a752cb"
+    },
+    ".sources/contracts/experimental/XPPolicyV04.sol/IPIEForVerifiedXP.json": {
+      "abi": "85e5030d3e733d32466bd9616a8bc98268c4e2add36d40dbcea3f95d0de2a95f",
+      "bytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e",
+      "deployedBytecode": "1c9409806518d1a5f52d79299ea0289ea2ff527e05895cd8f7a36d4cca28a13e"
+    },
+    ".sources/contracts/experimental/XPPolicyV04.sol/XPPolicyV04.json": {
+      "abi": "84917cc390474502fcd911f09953bdd801a42d784452fd1df13af2a45b74cb54",
+      "bytecode": "d6b39eec1551eadb71cd23eab9ebe805f4d09b4a5227ac03b13e83530c7b45bf",
+      "deployedBytecode": "b88b4dbaa5219105ea04e1043a3045c1defcac758971337fb6625b0f8a777430"
+    }
+  }
+}

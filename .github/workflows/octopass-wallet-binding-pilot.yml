@@ -1,16 +1,9 @@
 name: OctoPass wallet binding pilot security checks (isolated)
 on:
   push:
-    branches: [feature/octopass-wallet-binding-pilot-20261021]
-    paths:
-      - 'tests-redteam5b/octopass-wallet-binding-pilot.cjs'
-      - 'tests-redteam5b/octopass-wallet-binding-pilot.test.cjs'
-      - '.github/workflows/octopass-wallet-binding-pilot.yml'
+    branches: [main, feature/octopass-wallet-binding-pilot-20261021]
   pull_request:
-    paths:
-      - 'tests-redteam5b/octopass-wallet-binding-pilot.cjs'
-      - 'tests-redteam5b/octopass-wallet-binding-pilot.test.cjs'
-      - '.github/workflows/octopass-wallet-binding-pilot.yml'
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:

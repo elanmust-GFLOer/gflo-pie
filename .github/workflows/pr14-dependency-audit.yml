@@ -1,17 +1,10 @@
-name: PR14 Hardhat dependency evidence and acceptance
+name: Hardhat dependency evidence and acceptance
 on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
-    paths:
-      - 'tests-v02/package.json'
-      - 'tests-v02/package-lock.json'
-      - '.github/workflows/pr14-dependency-audit.yml'
   push:
-    branches: [security/hardhat-dependency-hardening-20261021]
-    paths:
-      - 'tests-v02/package.json'
-      - 'tests-v02/package-lock.json'
-      - '.github/workflows/pr14-dependency-audit.yml'
+    branches: [main, security/hardhat-dependency-hardening-20261021]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:

@@ -1,8 +1,12 @@
 # Isolated PIE v0.2 build baseline
 
-Scope: compile the complete current `contracts/` tree and run the existing 11
-Genesis/Path tests for `PIECoreV02`. This is not functional coverage for every
+Scope: compile the complete current `contracts/` tree and run the existing 15
+Genesis/Path and policy-pause tests for `PIECoreV02`. This is not functional coverage for every
 contract, a full protocol audit, a deployment, or an architecture decision.
+
+## Current checkpoint (2026-11-01)
+
+Main baseline `18b1ef168cae9eded38e8fa5998f1308627ab5ed` contains 26 project Solidity files; the clean build compiles 47 files including imports and runs 15 assertions. Compiler remains local solc-js 0.8.28, optimizer 200, Cancun. Historical counts/hashes below belong to their named commits. Current dependency disposition and lock comparison: [maintenance](../docs/MAIN-MAINTENANCE-2026-11-01.md).
 
 ## Root cause and fix
 
@@ -53,7 +57,7 @@ registry HTTPS source and an integrity digest. This is an integrity/provenance
 check, not a dependency vulnerability audit.
 
 The final gate must independently show `LOCKED_NPM_CI`, compile success,
-11 tests passing, a nonempty exact compiler version, and a downloadable artifact
+15 tests passing, a nonempty exact compiler version, and a downloadable artifact
 bound to the tested commit. The workflow records hashes for the source manifest,
 logs, test config, preparation script, unchanged tests and workflow.
 
