@@ -33,3 +33,9 @@ from branch `feature/pie-core-v0.2`, commit `efe4d7d` onward.
 - The faucet is paused; v0.2 Genesis requires no token. It returns with atomic Ignition.
 - OctoPush identity checks will read `PIECoreV02.getIdentity()` after the Sepolia deploy.
 - Pitch decks before 2026-10-15 describe the v3 stack and are historical.
+
+## Amendment — 2026-11-01
+1. **Reason 1 superseded.** The v3 source was located (`contracts/PIECore.sol`, exact metadata match) and all four Sepolia contracts are now verified on Etherscan. Retirement stands on reasons 2–4.
+2. **GFLOToken moves to Retired.** Its verified source is `MockGFLOToken`: unrestricted `faucet()` mints 10,000 GFLO per call and it has no `burn`/`burnFrom`. It is incompatible with `GFLOIgnitionV01` (requires `burnFrom` and an exact supply delta). The v0.2 stack uses a fresh `GFLOFixedSupplyV01` deployment.
+3. **Canonical tested line:** `PIECoreIgnitionV01` + `XPPolicyV03` + `TrustedXPSourceRegistryV02` + `GFLOIgnitionV01` + `GFLOFixedSupplyV01` + `EffectiveTierGateV01` (exercised end-to-end by the activity pilot, PR #20). `PIECoreV02`/`XPPolicyV02` remain the Genesis/Path phase reference. `contracts/experimental/` (V04, V05) is not canonical.
+4. **Consequence:** any XP or tier read from 0x9CF55d0b… is self-mintable and must be labelled legacy, never shown as reputation.
