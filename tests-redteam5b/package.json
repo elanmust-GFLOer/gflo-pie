@@ -7,7 +7,8 @@
     "prepare": "node prepare-ci.cjs",
     "test": "npm run prepare && node .generated/rt5b1.mjs && node .generated/rt5b2.mjs",
     "test:5b1": "npm run prepare && node .generated/rt5b1.mjs",
-    "test:5b2": "npm run prepare && node .generated/rt5b2.mjs"
+    "test:5b2": "npm run prepare && node .generated/rt5b2.mjs",
+    "test:activity": "node pilot/run.mjs"
   },
   "devDependencies": {
     "@ethereumjs/block": "10.1.3",

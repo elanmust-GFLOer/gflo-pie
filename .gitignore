@@ -21,3 +21,7 @@ ignition/deployments/chain-31337
 /tests-v02/.cache/
 /tests-v02/.artifacts/
 /tests-v02/evidence/
+
+# Signed EVM test outputs (including the activity evidence pilot)
+/tests-redteam5b/.generated/
+/tests-redteam5b/evidence/
