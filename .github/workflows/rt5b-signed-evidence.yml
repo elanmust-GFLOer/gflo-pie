@@ -6,6 +6,7 @@ on:
       - security/verified-contribution-gate-20261020
       - feature/pie-core-v0.2
       - security/ci-provenance-gate-20261021
+      - pilot/octopush-evidence-e2e-20261101
     paths:
       - 'contracts/**'
       - 'scripts/gflo-redteam5b1-proof-tamper-revocation.mjs'
@@ -69,6 +70,10 @@ jobs:
         run: |
           set -o pipefail
           node .generated/rt5b2.mjs 2>&1 | tee evidence/rt5b2.log
+      - name: Run local deterministic activity evidence pilot
+        run: |
+          set -o pipefail
+          npm run test:activity 2>&1 | tee evidence/activity-pilot.log
       - name: Run P0-A RED TEAM 5C signed Tier-2 consumer scenarios
         run: |
           set -o pipefail
