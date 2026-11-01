@@ -1,36 +1,91 @@
 name: PIE v0.2 Genesis and Path tests
-
 on:
-  workflow_dispatch:
-  pull_request:
+  push:
+    branches:
+      - feature/pie-core-v0.2
+      - fix/pie-v02-build-baseline-20261020
     paths:
       - 'contracts/**'
       - 'tests-v02/**'
       - '.github/workflows/pie-v02-tests.yml'
-
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    paths:
+      - 'contracts/**'
+      - 'tests-v02/**'
+      - '.github/workflows/pie-v02-tests.yml'
+  workflow_dispatch:
 permissions:
   contents: read
-
 jobs:
   genesis-path:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: tests-v02
+    env:
+      FORCE_COLOR: '0'
     steps:
-      - name: Checkout v0.2 branch for manual run, PR ref otherwise
-        uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && 'feature/pie-core-v0.2' || github.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '20'
-      - name: Verify isolated test files
-        run: test -f package.json && test -f hardhat.config.cjs && test -f test/PIECoreV02.identity.cjs
-      - name: Install isolated dependencies
-        run: npm install --no-audit --no-fund
-      - name: Compile contracts
-        run: npx hardhat compile --config hardhat.config.cjs
-      - name: Run Genesis and Path State Machine tests
-        run: npx hardhat test --config hardhat.config.cjs
+          node-version: '22.23.3'
+      - name: Record exact source and runtime
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          git rev-parse HEAD > evidence/checkout-sha.txt
+          git rev-parse HEAD^{tree} > evidence/checkout-tree.txt
+          printf 'event=%s\nhead=%s\nbase=%s\n' "$GITHUB_EVENT_NAME" "${{ github.event.pull_request.head.sha || '' }}" "${{ github.event.pull_request.base.sha || '' }}" > evidence/checkout-event.txt
+          cat evidence/checkout-sha.txt
+          node --version
+          npm --version
+      - name: Install locked isolated test dependencies
+        run: |
+          test -f package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund
+          git diff --exit-code -- package.json package-lock.json
+          echo "dependency_mode=LOCKED_NPM_CI" >> "$GITHUB_ENV"
+          npm ls --depth=0 > evidence/npm-top-level.txt
+      - name: Compile complete Solidity source tree
+        run: |
+          set -o pipefail
+          npm run compile 2>&1 | tee evidence/compile.log
+      - name: Run existing Genesis and Path tests
+        run: |
+          set -o pipefail
+          npm test -- --no-compile 2>&1 | tee evidence/tests.log
+      - name: Capture build evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          compiler_version=$(node -p 'require("solc").version()')
+          test -n "$compiler_version"
+          {
+            echo "integration_sha=$(git rev-parse HEAD)"
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "run_attempt=$GITHUB_RUN_ATTEMPT"
+            echo "node_version=$(node --version)"
+            echo "npm_version=$(npm --version)"
+            echo "dependency_mode=${dependency_mode:-UNKNOWN}"
+            echo "compiler=$compiler_version"
+          } > evidence/manifest.txt
+          if test -f package-lock.json; then
+            cp package-lock.json evidence/package-lock.json
+            sha256sum package-lock.json >> evidence/manifest.txt
+          fi
+          for file in evidence/checkout-sha.txt evidence/checkout-tree.txt evidence/checkout-event.txt evidence/compile.log evidence/tests.log evidence/sources.json package.json hardhat.config.cjs prepare-sources.cjs test/PIECoreV02.identity.cjs ../.github/workflows/pie-v02-tests.yml; do
+            if test -f "$file"; then sha256sum "$file" >> evidence/manifest.txt; fi
+          done
+      - name: Upload build evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pie-v02-build-evidence
+          path: tests-v02/evidence/
+          if-no-files-found: error
+          retention-days: 90

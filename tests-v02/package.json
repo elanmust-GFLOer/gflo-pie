@@ -1,0 +1,24 @@
+{
+  "name": "gflo-pie-v02-contract-tests",
+  "private": true,
+  "version": "0.2.0",
+  "scripts": {
+    "test": "node prepare-sources.cjs && hardhat test",
+    "compile": "node prepare-sources.cjs && hardhat compile"
+  },
+  "devDependencies": {
+    "hardhat": "2.26.3",
+    "@nomicfoundation/hardhat-ethers": "3.1.0",
+    "@nomicfoundation/hardhat-chai-matchers": "2.1.0",
+    "@openzeppelin/contracts": "5.6.1",
+    "ethers": "6.15.0",
+    "chai": "4.5.0",
+    "solc": "0.8.28"
+  },
+  "overrides": {
+    "tmp": "0.2.7",
+    "ethers": {
+      "ws": "8.21.1"
+    }
+  }
+}
