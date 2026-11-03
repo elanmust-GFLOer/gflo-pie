@@ -1,5 +1,9 @@
 # GFLO PIE v0.2 — PoVA release evidence and Sepolia source-verification baseline
 
+> **Status update 2026-11-03 (read-only Etherscan re-check, chainid 11155111):** all four legacy contracts are now **source-verified on Etherscan**:
+> GFLOToken = `MockGFLOToken` (solc 0.8.33, optimizer ON/200) · PIECore = `contracts/PIECore.sol` · GFLOIgnition = `GFLOIgnition.sol` · GasFeeLoop = `contracts/GasFeeLoop.sol` (all three solc 0.8.34, optimizer OFF).
+> The "NO" / "NOT yet found" / "NOT yet bytecode-matched" statements below are historical as of 2026-11-01. No user transaction has hit PIECore, GFLOIgnition or GasFeeLoop since the 2026-03-09 deploy. Legacy local artifacts moved to `archive/legacy-v3/`.
+
 **Status:** READ-ONLY AUDIT WORKING BASELINE — NOT RELEASED / NOT VERIFIED AS v0.2  
 **Prepared:** 2026-11-01  
 **Immutable candidate:** `feature/pie-core-v0.2` at `a4e11cb467c2eae6f6baf2419aaa38aa653fdf16`  

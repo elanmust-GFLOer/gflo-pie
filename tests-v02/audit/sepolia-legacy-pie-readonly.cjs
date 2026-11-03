@@ -147,7 +147,7 @@ async function corroborate(url,name,contract,entry,block){
  const request=(method,params)=>rpc(historyEndpoint,method,params);
  // Both legacy artifact ABIs must agree on signature AND indexed layout.
  for(const folder of ['compiled2','compiled3']){
-  const file=path.resolve(__dirname,'../../'+folder+'/contracts_PIECore_sol_PIECore.abi');
+  const file=path.resolve(__dirname,'../../archive/legacy-v3/'+folder+'/contracts_PIECore_sol_PIECore.abi');
   try{
    const abi=JSON.parse(fs.readFileSync(file,'utf8')),expected=new Interface(abi);
    for(const sig of eventSignatures){

@@ -51,3 +51,6 @@ A valid signature proves an attestor's assertion, not that real-world work happe
 
 - [GFLO.Octo_PIE-cookR](https://github.com/elanmust-GFLOer/GFLO.Octo_PIE-cookR): integration design and red-team archive
 - `docs/`: decisions, audits and evidence
+- `docs/LEGACY-REUSE-ASSESSMENT-2026-11-03.md`: what legacy code (Ignition, burn, staking/GasFeeLoop, ElanMust.AI, backend) is worth reusing
+- `archive/legacy-v3/`: v3-era root files, moved (not deleted) on 2026-11-03
+- `deployed_addresses.json`: legacy v3 vs v0.2 address manifest

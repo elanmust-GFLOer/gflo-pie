@@ -1,5 +1,9 @@
 # Sepolia legacy contracts — bytecode provenance checkpoint (2026-11-01)
 
+> **Status update 2026-11-03 (read-only Etherscan re-check, chainid 11155111):** all four legacy contracts are now **source-verified on Etherscan**:
+> GFLOToken = `MockGFLOToken` (solc 0.8.33, optimizer ON/200) · PIECore = `contracts/PIECore.sol` · GFLOIgnition = `GFLOIgnition.sol` · GasFeeLoop = `contracts/GasFeeLoop.sol` (all three solc 0.8.34, optimizer OFF).
+> The "NO" / "NOT yet found" / "NOT yet bytecode-matched" statements below are historical as of 2026-11-01. No user transaction has hit PIECore, GFLOIgnition or GasFeeLoop since the 2026-03-09 deploy. Legacy local artifacts moved to `archive/legacy-v3/`.
+
 **Investigation status:** read-only Etherscan creation-transaction and GitHub artifact matching. **Not an Etherscan source-verification submission, not a security audit.** ChainId = `11155111` (Ethereum Sepolia). All three deployment receipts reported `0x1`.
 
 ## GasFeeLoop — MATCHED deployment creation bytecode

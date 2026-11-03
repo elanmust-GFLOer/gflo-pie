@@ -1,8 +1,23 @@
 {
-  "PIECore": "0x9CF55d0b9D61Dc28EF3cb10765CF4b861Cd0991e",
-  "GFLOToken": "0x563b2e3b499818a2f84c472efb3169a2667807fe",
-  "GFLOIgnition": "0x414DEDcf9264614Fd087BDa58bE27a0B698CcC54",
-  "deployer": "0xF80a456710B7aF746D88733dc456BC3190E6FA31",
   "network": "sepolia",
-  "timestamp": "2026-03-09T07:09:14.180Z"
+  "chainId": 11155111,
+  "updated": "2026-11-03",
+  "legacy_v3": {
+    "status": "RETIRED - do not integrate (see docs/DECISION-001-v3-retirement.md). Verified on Etherscan, kept for history.",
+    "deployer": "0xF80a456710B7aF746D88733dc456BC3190E6FA31",
+    "deployedAt": "2026-03-09T07:09:14.180Z",
+    "PIECore": "0x9CF55d0b9D61Dc28EF3cb10765CF4b861Cd0991e",
+    "GFLOIgnition": "0x414DEDcf9264614Fd087BDa58bE27a0B698CcC54",
+    "GasFeeLoop": "0xd2C926F67080D6315b5dbBc7D621d729Cfe8A9C7",
+    "GFLOToken": "0x563b2e3b499818a2f84c472efb3169a2667807fe"
+  },
+  "v02": {
+    "status": "NOT DEPLOYED",
+    "PIECoreIgnitionV01": null,
+    "XPPolicyV03": null,
+    "TrustedXPSourceRegistryV02": null,
+    "GFLOIgnitionV01": null,
+    "GFLOFixedSupplyV01": null,
+    "EffectiveTierGateV01": null
+  }
 }
