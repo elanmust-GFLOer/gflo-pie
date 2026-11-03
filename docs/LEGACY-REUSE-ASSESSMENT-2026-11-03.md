@@ -28,6 +28,11 @@ or redeployed in place (DECISION-001, ADR-0001).
 
 ## Staking: what a rewrite could be (ADR-0001 compliant)
 
+**Clarification from the project owner (2026-11-03):** staking was conceived as **GFLO token staking**
+(an economic/utility feature of the token), not as an XP mechanism. It is **deferred**: it will be
+specified and activated when it is next in line, after the v0.2 deployment. The options below are
+input for that later specification, not a decision.
+
 Shared constraint: stake **never** writes or multiplies PIE XP, tier, reviewer status or governance weight by itself.
 
 1. **Attestor/reviewer bond (recommended first).** Attestors lock GFLO as a slashable bond;
@@ -56,7 +61,7 @@ attestation, evidence oracle or payout authority.
 
 ## Suggested order
 
-1. Deploy + verify the v0.2 canonical line on Sepolia (current blocker).
+1. Deploy + verify the v0.2 canonical line on Sepolia (current blocker; script ready in `deploy-v02/`).
 2. Repoint the backend identity API to v0.2 (`effectiveTier`).
-3. Specify the attestor bond module (staking rewrite #1) with its own test gate.
+3. When staking is next in line: specify GFLO token staking (options above) with its own test gate.
 4. Update the ElanMust.AI prompt to the v0.2 constitution.
