@@ -1,0 +1,8 @@
+{
+  "chainId": 11155111,
+  "governance": "REPLACE_WITH_SAFE_ADDRESS",
+  "tokenRecipient": "REPLACE_WITH_RECIPIENT_ADDRESS",
+  "initialSupply": "REPLACE_WITH_BASE_UNITS",
+  "tier1Burn": "REPLACE_WITH_BASE_UNITS",
+  "tier2Burn": "REPLACE_WITH_BASE_UNITS"
+}

@@ -4,7 +4,9 @@
   "version": "0.2.0",
   "scripts": {
     "test": "node prepare-sources.cjs && hardhat test",
-    "compile": "node prepare-sources.cjs && hardhat compile"
+    "compile": "node prepare-sources.cjs && hardhat compile",
+    "deploy:dry-run": "node prepare-sources.cjs && GFLO_DRY_RUN=1 hardhat run deploy/deploy-v02.cjs",
+    "deploy": "node prepare-sources.cjs && hardhat run deploy/deploy-v02.cjs"
   },
   "devDependencies": {
     "hardhat": "2.26.3",
