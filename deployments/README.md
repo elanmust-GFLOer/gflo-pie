@@ -6,7 +6,7 @@ script writes it.
 
 | File | Chain | Status |
 | --- | --- | --- |
-| `eip155-11155111.json` | Ethereum Sepolia (pilot home chain, DECISION-002) | not yet deployed |
+| `eip155-84532.json` | Base Sepolia (pilot home chain, DECISION-002) | not yet deployed |
 
 ## What a manifest contains
 - `chain`, `chainId`, `gitCommit`, compiler (`solc`, optimizer, `evmVersion`)
@@ -27,9 +27,9 @@ From `tests-v02/` (locked dependencies, solc 0.8.28, Cancun):
 npm ci --ignore-scripts
 npm run deploy:dry-run        # local Hardhat only, no keys, writes tests-v02/evidence/deploy-dry-run/
 
-cp ../deployments/config/eip155-11155111.example.json ../deployments/config/eip155-11155111.json
+cp ../deployments/config/eip155-84532.example.json ../deployments/config/eip155-84532.json
 # fill in governance (Safe), tokenRecipient, supply and burns per the Pilot Trust Policy
-GFLO_DEPLOY_CONFIG=../deployments/config/eip155-11155111.json \
+GFLO_DEPLOY_CONFIG=../deployments/config/eip155-84532.json \
 RPC_URL=... DEPLOYER_KEY=... ETHERSCAN_API_KEY=... npm run deploy
 ```
 
