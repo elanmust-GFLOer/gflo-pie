@@ -102,9 +102,11 @@ jobs:
           GFLO_TEST_MODE: ${{ matrix.mode }}
         shell: bash
         run: |
+          set +e
           set -uo pipefail
           node pilot/sec01-sec02-regression.mjs > ../../evidence/oracle.log 2>&1
           rc=$?
+          set -e
           echo "$rc" > ../../evidence/raw-exit-code.txt
           cat ../../evidence/oracle.log
           MODE="$GFLO_TEST_MODE" node - <<'NODE'
