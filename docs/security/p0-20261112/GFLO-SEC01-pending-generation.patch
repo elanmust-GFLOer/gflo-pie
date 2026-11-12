@@ -1,0 +1,56 @@
+diff --git a/contracts/XPPolicyV03.sol b/contracts/XPPolicyV03.sol
+index b974067..9307e7d 100644
+--- a/contracts/XPPolicyV03.sol
++++ b/contracts/XPPolicyV03.sol
+@@ -59,6 +59,12 @@ contract XPPolicyV03 is EIP712 {
+     mapping(address => mapping(uint256 => uint32)) public dailyXP;
+     mapping(address => mapping(uint256 => uint32)) public weeklyXP;
+ 
++    // Submission-time authorization epoch. An attestor removal invalidates
++    // every PENDING grant accepted in an earlier epoch for this exact rule.
++    // This does NOT invalidate signatures which have not been submitted yet.
++    mapping(bytes32 => mapping(address => uint256)) public attestorGeneration;
++    mapping(bytes32 => uint256) public grantAttestorGeneration;
++
+     error NotOwner();
+     error BadSetup();
+     error Paused();
+@@ -73,6 +79,7 @@ contract XPPolicyV03 is EIP712 {
+     error BadGrantStatus();
+     error TooEarly();
+     error InvalidIdentity();
++    error AttestorAuthorizationInvalidated();
+ 
+     event GrantPending(bytes32 indexed claimId,address indexed recipient,address indexed attestor,uint16 amount,uint64 finalizesAt);
+     event GrantFinalized(bytes32 indexed claimId,address indexed recipient,uint16 amount);
+@@ -102,6 +109,11 @@ contract XPPolicyV03 is EIP712 {
+     }
+     function setAttestor(bytes32 ruleId,address attestor,bool allowed) external onlyOwner {
+         if(rules[ruleId].maxClaims==0 || attestor==address(0)) revert InvalidAttestor();
++        bool previouslyAllowed = ruleAttestors[ruleId][attestor];
++        if (previouslyAllowed && !allowed) {
++            // Checked uint256 increment: no wraparound or reset on revocation.
++            attestorGeneration[ruleId][attestor] += 1;
++        }
+         ruleAttestors[ruleId][attestor]=allowed;
+         emit AttestorChanged(ruleId,attestor,allowed);
+     }
+@@ -139,6 +151,7 @@ contract XPPolicyV03 is EIP712 {
+         usedProofNonces[nonceKey]=true;
+         uint64 deadline=uint64(block.timestamp+CHALLENGE_PERIOD);
+         grants[claimId]=Grant(proof.recipient,proof.ruleId,rule.amount,deadline,msg.sender,attestor,Status.PENDING);
++        grantAttestorGeneration[claimId] = attestorGeneration[proof.ruleId][attestor];
+         emit GrantPending(claimId,proof.recipient,attestor,rule.amount,deadline);
+     }
+ 
+@@ -162,6 +175,10 @@ contract XPPolicyV03 is EIP712 {
+         Grant storage grant=grants[claimId];
+         if(grant.status!=Status.PENDING) revert BadGrantStatus();
+         if(block.timestamp<grant.finalizesAt) revert TooEarly();
++        if (!ruleAttestors[grant.ruleId][grant.attestor] ||
++            grantAttestorGeneration[claimId] != attestorGeneration[grant.ruleId][grant.attestor]) {
++            revert AttestorAuthorizationInvalidated();
++        }
+         grant.status=Status.VALID;
+         validEarnedXP[grant.recipient]+=grant.amount;
+         emit GrantFinalized(claimId,grant.recipient,grant.amount);
