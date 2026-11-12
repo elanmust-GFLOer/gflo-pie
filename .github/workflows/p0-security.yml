@@ -1,0 +1,162 @@
+name: GFLO P0 SEC-01 / SEC-02 diagnostic evidence (offline EVM)
+on:
+  push:
+    branches:
+      - security/p0-sec01-regression-candidate-20261112
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/security/p0-20261112/**'
+      - '.github/workflows/p0-security.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p0-security-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  oracle-evidence:
+    name: "${{ matrix.mode }} — oracle evidence (NOT release approval)"
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [baseline, sec01-candidate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact input/harness commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: input
+          persist-credentials: false
+      - name: Checkout exact vulnerable source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 18b1ef168cae9eded38e8fa5998f1308627ab5ed
+          path: source
+          persist-credentials: false
+      - name: Verify original inputs and baseline provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          cd input
+          git rev-parse HEAD > ../evidence/input-checkout-sha.txt
+          git rev-parse HEAD^{tree} > ../evidence/input-checkout-tree.txt
+          node - <<'NODE'
+          const fs = require('node:fs'), crypto = require('node:crypto');
+          const m = JSON.parse(fs.readFileSync('docs/security/p0-20261112/INPUT-MANIFEST.json', 'utf8'));
+          for (const f of m.files) {
+            const hash = crypto.createHash('sha256').update(fs.readFileSync(f.path)).digest('hex');
+            if (hash !== f.sha256) throw new Error('INPUT_HASH_MISMATCH: ' + f.path);
+          }
+          if (m.runner.implemented.length !== 7 || m.runner.notImplemented.length !== 8) throw Error('INCOMPLETE_MANIFEST');
+          NODE
+          cd ../source
+          test "$(git rev-parse HEAD)" = "18b1ef168cae9eded38e8fa5998f1308627ab5ed"
+          test "$(git rev-parse HEAD^{tree})" = "7743149659bd371905bc9d5365a040be0ea621a4"
+          test "$(git hash-object contracts/XPPolicyV03.sol)" = "b974067cd588c938c1a5be3e1e1cb4803ae5f323"
+          echo "3f4148381122a1117629c937402c10a41507e2c814605ccc5d36de3793798ddb  contracts/XPPolicyV03.sol" | sha256sum -c -
+          git rev-parse HEAD > ../evidence/baseline-sha.txt
+          git rev-parse HEAD^{tree} > ../evidence/baseline-tree.txt
+      - name: Apply candidate only to ephemeral source checkout
+        if: matrix.mode == 'sec01-candidate'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd source
+          git apply --check ../input/docs/security/p0-20261112/GFLO-SEC01-pending-generation.patch
+          git apply ../input/docs/security/p0-20261112/GFLO-SEC01-pending-generation.patch
+          git diff --check
+          test "$(git hash-object contracts/XPPolicyV03.sol)" = "9307e7d0b62336d9b3f2be74486fec979c7a0177"
+          echo "d4a0afcfa205629d635400335bc5a15f6f9c791c98e330b8e943d581ecd55cf5  contracts/XPPolicyV03.sol" | sha256sum -c -
+          git diff -- contracts/XPPolicyV03.sol > ../evidence/candidate.diff
+      - name: Copy versioned runner into isolated source fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp input/docs/security/p0-20261112/sec01-sec02-regression.mjs source/tests-redteam5b/pilot/sec01-sec02-regression.mjs
+          git -C source status --short > evidence/overlay-status.txt
+          sha256sum source/tests-redteam5b/pilot/sec01-sec02-regression.mjs > evidence/runner.sha256
+      - name: Set up pinned Node version
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.3'
+      - name: Install isolated lockfile dependencies
+        working-directory: source/tests-redteam5b
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          git diff --exit-code -- package.json package-lock.json
+          node --version > ../../evidence/node.txt
+          npm --version > ../../evidence/npm.txt
+          node -p 'require("solc").version()' > ../../evidence/solc.txt
+          sha256sum package-lock.json > ../../evidence/lockfile.sha256
+      - name: Execute seven diagnostic oracles (expected vulnerability, NOT secure)
+        working-directory: source/tests-redteam5b
+        env:
+          GFLO_TEST_MODE: ${{ matrix.mode }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          node pilot/sec01-sec02-regression.mjs > ../../evidence/oracle.log 2>&1
+          rc=$?
+          echo "$rc" > ../../evidence/raw-exit-code.txt
+          cat ../../evidence/oracle.log
+          MODE="$GFLO_TEST_MODE" node - <<'NODE'
+          const fs = require('node:fs');
+          const raw = fs.readFileSync('../../evidence/oracle.log','utf8');
+          const lines = raw.split(/\r?\n/).filter(x => x.startsWith('GFLO_SECURITY_RESULT='));
+          if (lines.length !== 1) throw Error('NO_UNIQUE_STRUCTURED_RESULT');
+          const result = JSON.parse(lines[0].slice('GFLO_SECURITY_RESULT='.length));
+          const exit = Number(fs.readFileSync('../../evidence/raw-exit-code.txt','utf8').trim());
+          const expected = process.env.MODE === 'baseline' ? 3 : 1;
+          if (exit !== 2 || result.exitCode !== 2 || result.mode !== process.env.MODE ||
+              result.oracleMatches !== 7 || result.securityGate !== 'BLOCKED' ||
+              result.securityFindings.length !== expected ||
+              !result.securityFindings.some(x => x.startsWith('SEC-02:B11:'))) {
+            throw Error('UNEXPECTED_ORACLE_RESULT_OR_SECURITY_SEMANTICS');
+          }
+          if (process.env.MODE === 'baseline' &&
+             (!result.securityFindings.some(x => x.startsWith('SEC-01:B01:')) ||
+              !result.securityFindings.some(x => x.startsWith('SEC-01:B02:')))) {
+            throw Error('MISSING_SEC01_BASELINE_REPRODUCTION');
+          }
+          if (process.env.MODE === 'sec01-candidate' &&
+               result.securityFindings.some(x => x.startsWith('SEC-01:'))) {
+            throw Error('SEC01_STILL_VULNERABLE');
+          }
+          fs.writeFileSync('../../evidence/diagnostic.json',JSON.stringify({
+            oracleExpectationMatched:true, releaseSecurityGate:'BLOCKED',
+            testMode:process.env.MODE, rawExitCode:exit, result
+          },null,2)+'\n');
+          console.log('EXPECTED_VULNERABILITY_REPRODUCTION: diagnostic oracle only; release BLOCKED');
+          NODE
+      - name: Upload raw evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: p0-${{ matrix.mode }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 90
+
+  security-release-gate:
+    name: SEC-01 / SEC-02 release gate — BLOCKED (expected)
+    needs: [oracle-evidence]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Reject release; SEC-02 and B04/B07/B08/B09/B10/B13/B14/B15 remain open
+        shell: bash
+        run: |
+          echo 'SECURITY_GATE=BLOCKED'
+          echo 'SEC-02 is unresolved; 8 required scenarios are not implemented.'
+          echo 'Diagnostic oracle job status: ${{ needs.oracle-evidence.result }}'
+          echo 'Base Sepolia BLOCK; production BLOCK / NO-GO.'
+          exit 1
