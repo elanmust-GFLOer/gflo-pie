@@ -1,0 +1,65 @@
+{
+  "schema": "gflo-p0-input-manifest-v1",
+  "baseline": {
+    "repo": "elanmust-GFLOer/gflo-pie",
+    "commit": "18b1ef168cae9eded38e8fa5998f1308627ab5ed",
+    "tree": "7743149659bd371905bc9d5365a040be0ea621a4",
+    "contractPath": "contracts/XPPolicyV03.sol",
+    "contractBlob": "b974067cd588c938c1a5be3e1e1cb4803ae5f323",
+    "contractSHA256": "3f4148381122a1117629c937402c10a41507e2c814605ccc5d36de3793798ddb"
+  },
+  "files": [
+    {
+      "path": "docs/security/p0-20261112/GFLO-SEC01-pending-generation.patch",
+      "sha256": "d4478cb9839c2702a17fcc4a1f34c48574f56fe8488a5c845a6126faf32420a2",
+      "gitBlob": "9a63fc4ac02c8bd04163d551b0842610c1319f50"
+    },
+    {
+      "path": "docs/security/p0-20261112/sec01-sec02-regression.mjs",
+      "sha256": "bb13fc53fee0ad31309695c02071d2e0838585ce7d4e6220c2e9812488fa2911",
+      "gitBlob": "05d63de1dfe75dab9e2b0bb43f0f3fe0f92797c0"
+    },
+    {
+      "path": "docs/security/p0-20261112/REGRESSION-PLAN.md",
+      "sha256": "4ff87f21d24d4ba575e2846879fa83d8622a979fc5cd4c223bf52587c64b377f",
+      "gitBlob": "f0d7bb5432ab51e398292c05f1c4e73e2e541ea0"
+    }
+  ],
+  "runner": {
+    "implemented": [
+      "B01",
+      "B02",
+      "B03",
+      "B05",
+      "B06",
+      "B11",
+      "B12"
+    ],
+    "notImplemented": [
+      "B04",
+      "B07",
+      "B08",
+      "B09",
+      "B10",
+      "B13",
+      "B14",
+      "B15"
+    ],
+    "modes": [
+      "baseline",
+      "sec01-candidate"
+    ],
+    "reportedExitCodes": {
+      "0": "all observed oracles matched without modeled known vulnerability (not expected)",
+      "1": "unexpected assertion, harness or compiler error",
+      "2": "oracles matched but security vulnerability reproduced; not a release PASS"
+    }
+  },
+  "security": {
+    "SEC01": "patch candidate; not yet compiled or tested",
+    "SEC02": "unsubmitted signed proof remains accepted after reauthorization",
+    "baseSepolia": "BLOCK",
+    "production": "BLOCK/NO-GO"
+  },
+  "policy": "INPUT IMPORT ONLY. Manifest enumerates original unchanged artifacts. No claim of tested remediation or production readiness."
+}
