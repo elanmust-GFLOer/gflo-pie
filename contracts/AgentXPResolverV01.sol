@@ -66,6 +66,7 @@ contract AgentXPResolverV01 is SchemaResolver {
 
     // Quotas. Keys are hashed so every counter is a flat mapping.
     mapping(bytes32 => uint32) public quotaUsed;
+    mapping(bytes32 => bool) public struck;                  // EAS UID => fraud strike already recorded
 
     error NotOwner();
     error BadSetup();
@@ -82,10 +83,12 @@ contract AgentXPResolverV01 is SchemaResolver {
     error BadGrantStatus();
     error TooEarly();
     error EmptyReason();
+    error AlreadyStruck();
 
     event GrantPending(bytes32 indexed uid, uint256 indexed agentId, address indexed operator, address attester, uint16 amount, uint32 epoch, uint64 finalizesAt);
     event GrantFinalized(bytes32 indexed uid, uint256 indexed agentId, uint32 epoch, uint16 amount);
     event GrantRevoked(bytes32 indexed uid, uint256 indexed agentId, uint16 amount, bytes32 reason, bool strike);
+    event FraudStrike(bytes32 indexed uid, uint256 indexed agentId, address indexed operator, bytes32 reason);
     event PausedChanged(bool state);
     event AttesterLevelChanged(address indexed attester, uint8 level);
     event RuleAttesterChanged(bytes32 indexed ruleId, address indexed attester, bool allowed);
@@ -130,11 +133,21 @@ contract AgentXPResolverV01 is SchemaResolver {
 
     /// @notice Governance correction. `strike` = fraud-class finding against the operator
     ///         (fabricated evidence, collusion); three live strikes deactivate all their agents.
+    /// @dev A strike is tracked separately from XP revocation: if a colluding attester withdraws
+    ///      the grant first, governance can still strike it exactly once (no second XP deduction).
     function governanceRevoke(bytes32 uid, bytes32 reason, bool strike) external onlyOwner {
         if (reason == bytes32(0)) revert EmptyReason();
         Grant storage grant = grants[uid];
-        if (!_revokeGrant(uid, reason, strike)) revert BadGrantStatus();
-        if (strike) binding.recordStrike(grant.operator);
+        if (grant.status == Status.NONE) revert BadGrantStatus();
+        bool revoked = _revokeGrant(uid, reason, strike);
+        if (strike) {
+            if (struck[uid]) revert AlreadyStruck();
+            struck[uid] = true;
+            binding.recordStrike(grant.operator);
+            emit FraudStrike(uid, grant.agentId, grant.operator, reason);
+        } else if (!revoked) {
+            revert BadGrantStatus();
+        }
     }
 
     // ── EAS hooks ──────────────────────────────────────────────

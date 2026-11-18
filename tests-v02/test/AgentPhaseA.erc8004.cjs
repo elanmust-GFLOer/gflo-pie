@@ -340,6 +340,42 @@ describe("DESIGN-003 Phase A — operator binding, agent XP, agent tier (ERC-800
       expect(await binding.isActive(a)).to.equal(true);
     });
 
+    it("review fix: governance suspension survives unbind + rebind and can be set pre-emptively", async function () {
+      const { gov, op, w1, w2, binding, newBoundAgent, register, setWallet } = await setup();
+      const a = await newBoundAgent(op, w1);
+      await binding.connect(gov).setSuspended(a, true, id("INCIDENT"));
+      await binding.connect(op).unbind(a);
+      await expect(binding.connect(op).bind(a)).to.be.revertedWithCustomError(binding, "AgentIsSuspended");
+      expect(await binding.isActive(a)).to.equal(false);
+      await binding.connect(gov).setSuspended(a, false, id("CLEARED"));
+      await binding.connect(op).bind(a);
+      expect(await binding.isActive(a)).to.equal(true);
+      const b = await register(op); await setWallet(op, b, w2);
+      await binding.connect(gov).setSuspended(b, true, id("PRE_EMPTIVE"));
+      await expect(binding.connect(op).bind(b)).to.be.revertedWithCustomError(binding, "AgentIsSuspended");
+    });
+
+    it("review fix: an attester withdrawing first cannot prevent the fraud strike; XP is deducted once", async function () {
+      const { gov, op, w1, attCI, eas, schemaUID, binding, agentRes, newBoundAgent, attest } = await setup();
+      const a = await newBoundAgent(op, w1);
+      const uid = await attest(attCI, a, w1.address);
+      await advance(3 * DAY);
+      await agentRes.finalize(uid);
+      expect(await agentRes.totalAgentXP(a)).to.equal(400n);
+      await eas.connect(attCI).revoke({ schema: schemaUID, data: { uid, value: 0 } }); // front-run
+      expect(await agentRes.totalAgentXP(a)).to.equal(0n);
+      await expect(agentRes.connect(gov).governanceRevoke(uid, id("COLLUSION"), true))
+        .to.emit(agentRes, "FraudStrike").and.not.to.emit(agentRes, "GrantRevoked");
+      expect(await binding.liveStrikes(op.address)).to.equal(1n);
+      expect(await agentRes.totalAgentXP(a)).to.equal(0n);  // no second deduction / underflow
+      await expect(agentRes.connect(gov).governanceRevoke(uid, id("COLLUSION"), true))
+        .to.be.revertedWithCustomError(agentRes, "AlreadyStruck");
+      await expect(agentRes.connect(gov).governanceRevoke(uid, id("DUP"), false))
+        .to.be.revertedWithCustomError(agentRes, "BadGrantStatus");
+      await expect(agentRes.connect(gov).governanceRevoke(id("unknown"), id("X"), true))
+        .to.be.revertedWithCustomError(agentRes, "BadGrantStatus");
+    });
+
     it("governance can suspend a single agent", async function () {
       const { gov, op, w1, binding, newBoundAgent } = await setup();
       const a = await newBoundAgent(op, w1);

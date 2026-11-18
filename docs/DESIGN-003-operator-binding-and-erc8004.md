@@ -276,6 +276,9 @@ Not before the registry is stable; until then this stays a design note.
 | ERC-8004 owner upgrades registries | read-only dependence, every failure → inactive; monitor `Upgraded` events; publisher decoupled | a malicious upgrade could deny service, but cannot mint GFLO XP |
 | Agent wallet key compromise | operator calls ERC-8004 `unsetAgentWallet` → binding inactive at once | grants already finalized stay until governance revokes |
 | Agent wallet reused across agents | `agentOfWallet` uniqueness | — |
+| Wallet or owner flip-back (W1 → W2 → W1, or NFT away and back) re-activates the old epoch | ERC-8004 exposes no revision counter, so a view check sees only the current owner/wallet. Any stale binding can be invalidated by **anyone** at any time (`unbind`), which ends that epoch for good; a keeper watching ERC-8004 `Transfer` / `MetadataSet("agentWallet")` events must call it; governance can also suspend | flip-back inside a window nobody observes; fully closing it needs an upstream revision/nonce (open, reported by review on PR #25) |
+| Governance suspension cleared by unbind + rebind | suspension stored per `agentId`, independent of the binding; `bind` refuses a suspended agent | — (fixed after review on PR #25) |
+| Colluding attester withdraws a fraudulent grant before governance strikes | strike tracked per grant, separately from XP revocation; governance can strike a withdrawn grant once | — (fixed after review on PR #25) |
 
 ## 10. Delivery plan
 

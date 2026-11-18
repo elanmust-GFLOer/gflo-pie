@@ -31,7 +31,7 @@ contract AgentBindingRegistryV01 {
         address agentWallet;
         uint64 boundAt;
         uint32 epoch;
-        bool suspended;
+        bool suspended;        // mirrors agentSuspended[agentId] in reads; not the source of truth
     }
 
     IERC8004IdentityForBinding public immutable identity;
@@ -46,6 +46,9 @@ contract AgentBindingRegistryV01 {
     mapping(address => uint16) public boundAgentCount;      // bindings held, stale ones included until unbound
     mapping(address => uint64[3]) private _strikeTimes;     // ring buffer of the last STRIKE_LIMIT strikes
     mapping(address => uint8) private _strikeCursor;
+    /// @notice Governance suspension, keyed by agentId and independent of the removable binding,
+    ///         so unbind + bind can never clear it. Only governance lifts it.
+    mapping(uint256 => bool) public agentSuspended;
 
     error NotOwner();
     error BadSetup();
@@ -54,6 +57,7 @@ contract AgentBindingRegistryV01 {
     error NotAgentOwner();
     error NoOperatorIdentity();
     error OperatorSuspended();
+    error AgentIsSuspended();
     error InvalidAgentWallet();
     error WalletAlreadyBound();
     error AlreadyBound();
@@ -102,6 +106,7 @@ contract AgentBindingRegistryV01 {
         if (identity.ownerOf(agentId) != operator) revert NotAgentOwner();
         if (!pie.getIdentity(operator).exists) revert NoOperatorIdentity();
         if (isOperatorStruckOut(operator)) revert OperatorSuspended();
+        if (agentSuspended[agentId]) revert AgentIsSuspended();
 
         address wallet = identity.getAgentWallet(agentId);
         if (wallet == address(0) || wallet == operator) revert InvalidAgentWallet();
@@ -133,8 +138,7 @@ contract AgentBindingRegistryV01 {
 
     function setSuspended(uint256 agentId, bool suspended, bytes32 reason) external onlyOwner {
         if (reason == bytes32(0)) revert EmptyReason();
-        if (_bindings[agentId].operator == address(0)) revert NotBound();
-        _bindings[agentId].suspended = suspended;
+        agentSuspended[agentId] = suspended; // allowed for unbound agents too (pre-emptive)
         emit AgentSuspended(agentId, suspended, reason);
     }
 
@@ -162,15 +166,16 @@ contract AgentBindingRegistryV01 {
 
     // ── Reads (fail-closed) ────────────────────────────────────
 
-    function getBinding(uint256 agentId) external view returns (Binding memory) {
-        return _bindings[agentId];
+    function getBinding(uint256 agentId) external view returns (Binding memory b) {
+        b = _bindings[agentId];
+        b.suspended = agentSuspended[agentId];
     }
 
     /// @notice True only if the binding exists, is not suspended, the operator is not struck
     ///         out, and ERC-8004 still reports the same owner and the same agent wallet.
     function isActive(uint256 agentId) public view returns (bool) {
         Binding memory b = _bindings[agentId];
-        if (b.operator == address(0) || b.suspended || isOperatorStruckOut(b.operator)) return false;
+        if (b.operator == address(0) || agentSuspended[agentId] || isOperatorStruckOut(b.operator)) return false;
         return _backedByIdentity(agentId, b);
     }
 
