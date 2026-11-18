@@ -376,6 +376,16 @@ describe("DESIGN-003 Phase A — operator binding, agent XP, agent tier (ERC-800
         .to.be.revertedWithCustomError(agentRes, "BadGrantStatus");
     });
 
+    it("review fix: an agent wallet that later creates a PIE identity deactivates the agent", async function () {
+      const { op, w1, attCI, core, binding, agentRes, newBoundAgent, attest } = await setup();
+      const a = await newBoundAgent(op, w1);
+      expect(await binding.isActive(a)).to.equal(true);
+      await core.connect(w1).createIdentity(1); // createIdentity is permissionless
+      expect(await binding.isActive(a)).to.equal(false);
+      await expect(attest(attCI, a, w1.address)).to.be.revertedWithCustomError(agentRes, "InactiveAgent");
+      expect(await agentRes.totalAgentXP(a)).to.equal(0n);
+    });
+
     it("governance can suspend a single agent", async function () {
       const { gov, op, w1, binding, newBoundAgent } = await setup();
       const a = await newBoundAgent(op, w1);

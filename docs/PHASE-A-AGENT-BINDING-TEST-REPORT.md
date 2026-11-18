@@ -25,7 +25,7 @@ Date: 2026-11-18 · Scope: DESIGN-003 Phase A · Local Hardhat only, **not deplo
 
 ## Results
 
-`tests-v02`: **43 passing** (18 in `test/AgentPhaseA.erc8004.cjs`, 25 existing unchanged).
+`tests-v02`: **44 passing** (19 in `test/AgentPhaseA.erc8004.cjs`, 25 existing unchanged).
 `npm ci` keeps the lockfile byte-identical.
 
 | Area | Proven |
@@ -63,6 +63,7 @@ Each mutation applied alone to `contracts/`, sources re-prepared, Phase A suite 
 |---|---|---|
 | P1: governance suspension cleared by `unbind` + `bind` | suspension stored per `agentId` (`agentSuspended`), outside the removable binding; `bind` reverts `AgentIsSuspended`; can be set pre-emptively | new test fails on the previous contracts, passes now |
 | P1: attester withdraws a fraudulent grant first, so `governanceRevoke(…, true)` reverted and no strike was recorded | strike tracked per grant (`struck[uid]`) separately from XP revocation; a withdrawn grant can be struck exactly once with no second XP deduction | new test fails on the previous contracts, passes now |
+| P2: a bound agent wallet later calls the permissionless `createIdentity()` and becomes human too | `isActive()` re-checks on every read that the agent wallet has no PIE identity (a failing read counts as human) | new test fails on the previous contract, passes now |
 | P2: wallet/owner flip-back re-activates the old epoch | not fully fixable on-chain: ERC-8004 has no revision counter. Mitigation: anyone may invalidate a stale binding at any time; a keeper must watch ERC-8004 events. Recorded in DESIGN-003 §9 | open, decision pending |
 
 ## Known limits (unchanged by Phase A)

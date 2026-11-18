@@ -176,6 +176,7 @@ contract AgentBindingRegistryV01 {
     function isActive(uint256 agentId) public view returns (bool) {
         Binding memory b = _bindings[agentId];
         if (b.operator == address(0) || agentSuspended[agentId] || isOperatorStruckOut(b.operator)) return false;
+        if (_walletIsHuman(b.agentWallet)) return false; // a human wallet is never an agent, at any time
         return _backedByIdentity(agentId, b);
     }
 
@@ -189,6 +190,14 @@ contract AgentBindingRegistryV01 {
         agentId = plusOne - 1;
         Binding memory b = _bindings[agentId];
         return (true, agentId, b.operator, b.epoch);
+    }
+
+    /// @dev PIE createIdentity() is permissionless, so the human/agent exclusion is re-checked on
+    ///      every read, not only at bind time. A failing PIE read counts as human (fail-closed).
+    function _walletIsHuman(address wallet) private view returns (bool) {
+        try pie.getIdentity(wallet) returns (IPIEForBinding.Identity memory person) {
+            return person.exists;
+        } catch { return true; }
     }
 
     function _backedByIdentity(uint256 agentId, Binding memory b) private view returns (bool) {
