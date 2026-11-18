@@ -1,6 +1,6 @@
 # DESIGN-003 — Operator binding and ERC-8004 integration
 
-Date: 2026-11-18 · Status: **design proposal**, nothing implemented or deployed, not audited
+Date: 2026-11-18 · Status: **Phase A implemented and tested locally** (see `PHASE-A-AGENT-BINDING-TEST-REPORT.md`); phases B–D design only. Nothing deployed, not audited.
 Builds on: DECISION-002 (EAS resolver), `XPAttestationResolverV01`, `EffectiveTierGateV01`
 
 ## 0. One-sentence thesis
@@ -51,7 +51,7 @@ flowchart LR
   subgraph GFLO
     PIE[PIE Core<br/>human identity]
     BIND[AgentBindingRegistryV01<br/>operator ⇄ agent]
-    RES[XPAttestationResolverV02<br/>EAS resolver, human + agent XP]
+    RES["AgentXPResolverV01<br/>EAS resolver, agent XP"]
     GATE["AgentTierGateV01<br/>agent tier = min of own XP tier and operator tier"]
     PUB[GFLOReputationPublisherV01<br/>trusted 8004 client]
   end
@@ -142,27 +142,42 @@ This is the anti-plutocratic core in agent form: **you cannot buy a reputable ag
 The old history stays readable (and published in ERC-8004 under the old epoch), but
 it gives the new owner no rights.
 
-## 4. XP for agents — `XPAttestationResolverV02`
+## 4. XP for agents — `AgentXPResolverV01`
 
-Same rules as V01 (DECISION-002), with a subject-aware schema:
+A **separate** resolver and schema; the human `XPAttestationResolverV01` is unchanged.
+(Implementation note: an earlier draft used one resolver with `agentId == 0` meaning
+"human". ERC-8004 assigns `agentId` from 0, so 0 is a real agent; separate schemas remove
+the ambiguity and keep the human resolver untouched.)
 
 ```
 bytes32 ruleId, bytes32 eventId, bytes32 evidenceDigest, uint256 agentId   (revocable, no expiry)
 ```
 
-`agentId == 0` means a human subject (V01 behaviour). For `agentId != 0`:
-
 | Check | Why |
 |---|---|
 | `binding.isActive(agentId)` and `recipient == binding.agentWallet` | evidence is about this exact, currently accountable agent |
-| `attester != operator` | an operator cannot attest their own agent |
-| attester is not an agent of the same operator (`operatorOf(attester)`) | blocks sibling-agent collusion |
-| rule is flagged `agentEligible` | humans and agents earn on separate rule sets |
-| own caps per `(agentId, epoch)`: daily / weekly / per rule | an agent fleet cannot farm faster than one agent |
+| `attester != operator`, `attester != agentWallet` | no self-dealing |
+| attester is not an agent of the same operator (`agentOfWallet(attester)`) | blocks sibling-agent collusion |
+| own rule set, attester allowlist and trust levels | humans and agents earn on separate rule sets |
 
 Ledgers stay separate: `validEarnedXP[human]` and `agentXP[agentId][epoch]`.
 **Operators do not earn XP from their agents' work.** Otherwise a fleet of agents
 would be a way to buy human reputation.
+
+### 4.1 Farming bounds (they do not grow with the number of agents)
+
+| Bound | Limit | What it stops |
+|---|---|---|
+| per agent + epoch: rule claims, daily, weekly | rule `maxClaims`, 1,500 / 3,000 | one agent farming one rule |
+| **per operator, all agents together**: daily, weekly | **1,500 / 3,000**, the same as one agent | buying more agents to farm faster: N agents earn no faster than 1 |
+| **per attester → operator**: weekly | 1,500 | one friendly or colluding attester feeding one operator |
+| challenge period | 3 days PENDING before VALID | instant farming; gives time to revoke |
+| epoch reset on transfer / wallet change | XP starts at 0 | buying a farmed agent |
+| agent tier ≤ operator tier | `min(own, operator)` | a farmed agent outranking its human |
+
+The maximum agent XP an operator can gain is therefore **3,000 per week, whatever the
+number of agents or money involved**. The only ways to more trust are more independent
+attesters (each capped per operator) and more time.
 
 Evidence sources that fit agents well, because they are machine-checkable:
 merged pull request + passing CI run, executed and settled task/payment receipt
@@ -172,8 +187,9 @@ attestation.
 
 ## 5. Operator accountability (strikes)
 
-- When governance revokes an **agent** grant with a fraud-class reason
-  (`reason ∈ {FRAUD, FABRICATED_EVIDENCE, COLLUSION}`), the operator gets a strike.
+- When governance revokes an **agent** grant with `governanceRevoke(uid, reason, strike = true)`
+  (fraud-class finding: fabricated evidence, collusion), the operator gets a strike. The flag is
+  explicit so that ordinary corrections (`strike = false`) never punish the operator.
 - Strikes decay after 90 days.
 - ≥ 3 live strikes: **all** of the operator's agents become inactive, and new binds are blocked
   until the count drops.
@@ -265,7 +281,7 @@ Not before the registry is stable; until then this stays a design note.
 
 | Phase | Scope | Exit gate |
 |---|---|---|
-| A | `AgentBindingRegistryV01` + `XPAttestationResolverV02` + `AgentTierGateV01` against a local ERC-8004 Identity build (official contracts, pinned commit) | hardhat tests incl. transfer → inactive, epoch reset, slot limits, sibling-collusion, fail-closed on registry revert; mutation gate as in DECISION-002 |
+| A ✅ | `AgentBindingRegistryV01` + `AgentXPResolverV01` + `AgentTierGateV01` against the official ERC-8004 Identity contracts (vendored, SHA-256 pinned) | hardhat tests incl. transfer → inactive, epoch reset, slot limits, sibling-collusion, fail-closed on registry revert; mutation gate as in DECISION-002 |
 | B | `GFLOReputationPublisherV01` against a local Reputation Registry | publish/unpublish idempotence, self-feedback guard, ERC-8004 revert does not touch XP |
 | C | Sepolia or Base Sepolia (both have ERC-8004 + EAS); backend `/api/agents/*` | one rule: *merged PR with passing CI by a coding agent*, CI bot as attester, ≤ 20 consenting operators |
 | D | Measure: verified tasks, revocations, false positives, strikes, consumer reads | decide on mainnet / Base only after independent review |
