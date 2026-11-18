@@ -9,7 +9,8 @@
 | Contract | Role |
 | --- | --- |
 | `PIECoreIgnitionV01` | Identity, selected path, historical tier; only the bound Ignition changes tier |
-| `XPPolicyV03` | Attested, revocable XP: PENDING → VALID / REVOKED, caps, replay nullifiers |
+| `XPAttestationResolverV01` | **XP source for new deployments.** EAS schema resolver with the XPPolicyV03 rules: attested, revocable XP, PENDING → VALID / REVOKED, caps, replay protection. See `docs/DECISION-002-eas-resolver-and-canonical-repo.md` |
+| `XPPolicyV03` | Previous attested-XP policy (own EIP-712 proofs); kept for reference, superseded by the EAS resolver |
 | `TrustedXPSourceRegistryV02` | Single approved XP source; fails closed |
 | `GFLOIgnitionV01` | Exact GFLO burn, then tier upgrade |
 | `GFLOFixedSupplyV01` | Fixed-supply token with `burnFrom`, no mint |
@@ -47,7 +48,12 @@ npm run test:activity  # activity → XP → access → revoke pilot
 
 A valid signature proves an attestor's assertion, not that real-world work happened. Issuer/attestor/governance collusion remains an open, documented risk. The `tests-v02` dependency audit gate (Hardhat 2 dev dependencies) is open by design.
 
-## Related
+## Repository map
 
-- [GFLO.Octo_PIE-cookR](https://github.com/elanmust-GFLOer/GFLO.Octo_PIE-cookR): integration design and red-team archive
+This is the **single canonical repository** of GFLO.
+
+- `contracts/`, `tests-v02/`, `tests-redteam5b/`: protocol and tests
 - `docs/`: decisions, audits and evidence
+- `integration/octo-pie/`: OctoPush × OctoPartnR integration design and RED TEAM 6 archive (imported from `GFLO.Octo_PIE-cookR`)
+- [`gflo-backend`](https://github.com/elanmust-GFLOer/gflo-backend): live HTTP API (separate until its Railway source is moved)
+- Archived: `GasFeeLoop-` (legacy v3), `gflo-clean` (early prototype), `GFLO.Octo_PIE-cookR`

@@ -13,12 +13,16 @@
     "@openzeppelin/contracts": "5.6.1",
     "ethers": "6.15.0",
     "chai": "4.5.0",
-    "solc": "0.8.28"
+    "solc": "0.8.28",
+    "@ethereum-attestation-service/eas-contracts": "1.9.0"
   },
   "overrides": {
     "tmp": "0.2.7",
     "ethers": {
       "ws": "8.21.1"
+    },
+    "@ethereum-attestation-service/eas-contracts": {
+      "hardhat": "$hardhat"
     }
   }
 }
