@@ -1,6 +1,6 @@
 # DESIGN-004 — Reviving the Paths, bound to the OctoPush plans
 
-Date: 2026-11-19 · Status: **proposal, decisions D1–D4 open**, nothing implemented
+Date: 2026-11-19 · Status: **D1–D4 accepted by the maintainer; contracts (§7.1) implemented and tested locally**; OctoPush side (§7.2) and pilot (§7.3) not started. Nothing deployed, not audited.
 
 ## 0. Principle
 
@@ -123,3 +123,19 @@ a precondition of standing, which contradicts §0. Proposal:
    - an earned-plan check through `EffectiveTierGateV01`, shown on `/pricing` and OctoPass as
      "earned" vs "paid".
 3. **Pilot (Phase C):** Base Sepolia, open rooms only, 5–20 members, measured against the North Star.
+
+## 8. Implementation status (contracts, §7.1)
+
+| Contract | Role |
+|---|---|
+| `PathRuleRegistryV01` | `ruleId → Path`, write-once, governance only; `effectiveAmount` adds +20% on the member's selected Path and reverts for unassigned rules |
+| `XPAttestationResolverV02` | V01 plus Paths: unassigned rules are refused, the bonus counts against every cap, and the granted amount is stored per grant (exact revocation). Trust level is judged on the base amount |
+| `TierProgressionV01` | `start` at the threshold (Tier 1 = 1 000, Tier 2 = 5 000 XP, the selected goal required); `complete` after 30 days only if XP is still at the threshold **and** grew by ≥ 200; anyone can cancel a qualification that fell below; binds to PIE core instead of the burn-for-tier Ignition. No token, balance or payment is read |
+
+Tests: `tests-v02/test/PathsProgression.cjs`, 10 tests, no token anywhere. The full suite is 66 passing.
+Mutation gate (each applied alone): bonus on every Path, unassigned rules allowed, rewritable
+assignment, caps ignoring the bonus, base amount stored, no sustained-growth check, no waiting
+period, no threshold re-check, goal not required, cancelling a valid qualification. **All 10 killed.**
+
+Open for §7.2: OctoPush review outbox and EAS bridge, wallet-link signature, earned-plan check on
+`/pricing` and OctoPass.
