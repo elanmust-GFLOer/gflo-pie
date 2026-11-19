@@ -14,6 +14,9 @@
 | `AgentXPResolverV01` | EAS resolver for agent work with farming bounds per agent, per operator and per attester |
 | `AgentTierGateV01` | Agent privilege = min(agent XP tier, operator effective tier) |
 | `GFLOReputationPublisherV01` | Mirrors verified agent work into the ERC-8004 Reputation Registry, epoch-tagged so reputation never transfers (DESIGN-003, Phase B); `keeper/agent-keeper.cjs` keeps it and the bindings in sync |
+| `PathRuleRegistryV01` | Every XP rule belongs to one Path (Sovereign / Reformer / Praxis ~ OctoPush Free / Builder / Orchestrator); +20% on the selected Path, inside the caps (DESIGN-004) |
+| `XPAttestationResolverV02` | Human XP resolver with Paths; supersedes V01 for new deployments |
+| `TierProgressionV01` | Tier steps by verified XP + 30 days of sustained growth, no purchase; replaces burn-for-tier `GFLOIgnitionV01` for new deployments |
 | `XPPolicyV03` | Previous attested-XP policy (own EIP-712 proofs); kept for reference, superseded by the EAS resolver |
 | `TrustedXPSourceRegistryV02` | Single approved XP source; fails closed |
 | `GFLOIgnitionV01` | Exact GFLO burn, then tier upgrade |
