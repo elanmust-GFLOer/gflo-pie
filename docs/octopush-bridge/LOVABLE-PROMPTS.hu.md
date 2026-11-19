@@ -48,6 +48,28 @@ Tesztek: helyes kötés; lejárt nonce; rossz lánc; más profil nonce-a; vissza
 smart wallet elutasítás; dupla aktív kötés tiltása.
 ```
 
+## L1-javítás — az L1 review-ja után (OctoPush commit `665fdf8`)
+
+Az L1 elkészült (18 teszt, migráció becommitolva, de nem alkalmazva). A review három pontot talált:
+
+```
+Kis biztonsági javítás az L1 GFLO tárca-kötéshez (src/lib/gflo-binding.functions.ts és
+src/lib/gflo-binding.ts). Csak ezt a hármat csináld, mást ne:
+1) SIWE domain és URI fix, konfigurált érték legyen, ne a kérés fejléce. Most a x-forwarded-host /
+   host fejlécből jön, octopushhub.com alapértelmezéssel; ezt egy hamisított fejléc felülírhatja.
+   Legyen szerveroldali env: GFLO_SIWE_DOMAIN. Ha hiányzik, a kihívás-kérés BINDING_UNAVAILABLE-lel
+   álljon le (fail closed), ne essen vissza alapértelmezésre. URI: https://<GFLO_SIWE_DOMAIN>/octopass.
+   Megerősítéskor ellenőrizd, hogy a tárolt SIWE-üzenet domainje és URI-je egyezik a konfigurálttal.
+2) Rate limit a createGfloChallenge hívásra a meglévő src/lib/rate-limit.server.ts mintájára
+   (profilonként legfeljebb 5 kihívás / 10 perc). Túllépéskor RATE_LIMITED kód.
+3) Nonce-kódolás a meglévő protokoll szerint: a SIWE-üzenetben 0x előtag NÉLKÜLI hex (64 karakter),
+   a BindingConsent-ben ugyanaz a 32 bájt 0x előtaggal. Az adatbázisban tárolt bájtok ne változzanak.
+Tesztek: hamis Host fejléc nem kerül az üzenetbe; hiányzó GFLO_SIWE_DOMAIN → BINDING_UNAVAILABLE;
+a 6. kihívás 10 percen belül → RATE_LIMITED; a SIWE-nonce 0x nélküli, a hozzájárulásé 0x-szel, és
+ugyanaz a bájtsor. A meglévő 18 tesztnek továbbra is át kell mennie.
+Nincs fizetős inference, nincs publikálás, a migrációt ne alkalmazd. A roadmap.md L1 részébe vedd fel.
+```
+
 ## L2 — Review outbox, jogosultság és kibocsátói aláírás
 
 ```
