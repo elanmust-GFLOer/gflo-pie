@@ -16,8 +16,15 @@ subtask(TASK_COMPILE_SOLIDITY_GET_SOLC_BUILD).setAction(async ({ solcVersion }) 
 
 // Isolated testing: no deployment mnemonics, external RPC or Sepolia.
 module.exports = {
-  solidity: { version: "0.8.28",
-    settings: { optimizer: { enabled: true, runs: 200 }, evmVersion: "cancun" } },
+  solidity: {
+    compilers: [{ version: "0.8.28",
+      settings: { optimizer: { enabled: true, runs: 200 }, evmVersion: "cancun" } }],
+    // Vendored ERC-8004 test fixture only: upstream builds it with viaIR (stack too deep
+    // otherwise). Project contracts keep the default pipeline and bytecode.
+    overrides: {
+      ".sources/contracts/test/erc8004/ReputationRegistryUpgradeable.sol": { version: "0.8.28",
+        settings: { optimizer: { enabled: true, runs: 200 }, evmVersion: "cancun", viaIR: true } }
+    } },
   networks: { hardhat: { chainId: 31337, hardfork: "cancun" } },
   paths: {
     root: __dirname,

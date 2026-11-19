@@ -1,6 +1,6 @@
 # DESIGN-003 — Operator binding and ERC-8004 integration
 
-Date: 2026-11-18 · Status: **Phase A implemented and tested locally** (see `PHASE-A-AGENT-BINDING-TEST-REPORT.md`); phases B–D design only. Nothing deployed, not audited.
+Date: 2026-11-18 · Status: **Phases A and B implemented and tested locally** (see `PHASE-A-AGENT-BINDING-TEST-REPORT.md`, `PHASE-B-REPUTATION-PUBLISHER-TEST-REPORT.md`); phases C–D design only. Nothing deployed, not audited.
 Builds on: DECISION-002 (EAS resolver), `XPAttestationResolverV01`, `EffectiveTierGateV01`
 
 ## 0. One-sentence thesis
@@ -223,29 +223,52 @@ GFLO writes into the ERC-8004 Reputation Registry as **one fixed client address*
 who trust GFLO call:
 
 ```solidity
-reputation.getSummary(agentId, [GFLO_PUBLISHER], "gflo.verified", "")
+reputation.getSummary(agentId, [GFLO_PUBLISHER], "gflo.verified", publisher.currentEpochTag(agentId))
 ```
+
+`count` = live, verified tasks of the agent's **current binding epoch**.
+
+### Why the epoch tag (implementation finding)
+
+ERC-8004 feedback is keyed by `agentId`, and the agent NFT survives a sale. Without a tag, a
+buyer would inherit the seller's GFLO record in `getSummary`, which is exactly the reputation
+transfer Phase A forbids. Every entry therefore carries `tag2 = "gflo-epoch:<n>"`, and
+`getSummary` matches `tag2` exactly, so only the current epoch counts. Entries of an ended
+epoch can also be revoked by anyone.
 
 ### Mapping
 
-| GFLO event | ERC-8004 call |
+| GFLO state | ERC-8004 call |
 |---|---|
-| agent grant finalized (VALID) | `giveFeedback(agentId, value = 100, valueDecimals = 0, tag1 = "gflo.verified", tag2 = <rule category>, endpoint = "", feedbackURI = "eas:<chainId>:<uid>", feedbackHash = uid)` |
-| agent grant revoked (after VALID) | `revokeFeedback(agentId, feedbackIndex[uid])` |
-| PENDING grants | not published; only finalized evidence is reputation |
+| grant becomes eligible: VALID, agent active, grant epoch = current epoch | `giveFeedback(agentId, 100, 0, "gflo.verified", "gflo-epoch:<n>", "", "eas:<chainId>:<uid>", uid)` |
+| grant no longer eligible: revoked, agent inactive (transfer, wallet change, suspension, strike-out, wallet became human), or epoch ended | `revokeFeedback(agentId, feedbackIndex[uid])` |
+| eligibility returns (e.g. suspension lifted) | published again as a new ERC-8004 entry |
+| PENDING grants | never published |
 
-Value is a fixed **100 = verified task**, so `getSummary.count` is the number of
-verified, unrevoked tasks and the average stays meaningful. The XP amount and tier are read
-from GFLO directly, because averaging XP amounts would be meaningless.
+Value is a fixed **100 = verified task**, so `count` is meaningful and the average stays 100.
+XP amounts and tiers are read from GFLO directly.
 
 ### Design rules
 
-- **Decoupled and permissionless**: `publish(uid)` and `unpublish(uid)` can be called by anyone;
-  they read resolver state, are idempotent (`feedbackIndex[uid]`) and never affect XP. If
-  ERC-8004 reverts or is upgraded badly, GFLO keeps working.
-- The publisher must never be owner or approved for any agent, or ERC-8004 rejects it as
-  self-feedback. A deployment check covers this.
-- The publisher has no admin key beyond pause. It writes only what the resolver proves.
+- **Decoupled and permissionless**: anyone can call `publish(uid)` / `unpublish(uid)`; both
+  only mirror state the resolver and binding registry prove (`canPublish` / `canUnpublish`
+  views). Mirroring never touches XP or tiers: a failing or maliciously upgraded ERC-8004
+  registry can block mirroring only (tested).
+- Pause blocks `publish` only; `unpublish` always works (fail-safe direction).
+- ERC-8004 rejects feedback from an owner-approved address. An operator who approves the
+  publisher only blocks mirroring of their own agent (tested).
+- Re-entrancy guarded; grant data is decoded from a single static call.
+
+### Keeper (`keeper/agent-keeper.cjs`)
+
+A dependency-free tick, run by cron or a worker, with `dryRun` support. Every step is
+simulated with `staticCall` first.
+
+1. For bound agents touched by ERC-8004 `Transfer` / `MetadataSet("agentWallet")` events after
+   their `boundAt`: call the permissionless `unbind` if the binding is stale. If it is backed
+   again (flip-back, §9), report a `flipback` alert for governance to suspend.
+2. `unpublish` every live entry that is no longer eligible.
+3. `publish` every finalized grant that is eligible.
 
 ### Discovery
 
@@ -276,7 +299,7 @@ Not before the registry is stable; until then this stays a design note.
 | ERC-8004 owner upgrades registries | read-only dependence, every failure → inactive; monitor `Upgraded` events; publisher decoupled | a malicious upgrade could deny service, but cannot mint GFLO XP |
 | Agent wallet key compromise | operator calls ERC-8004 `unsetAgentWallet` → binding inactive at once | grants already finalized stay until governance revokes |
 | Agent wallet reused across agents | `agentOfWallet` uniqueness | — |
-| Wallet or owner flip-back (W1 → W2 → W1, or NFT away and back) re-activates the old epoch | ERC-8004 exposes no revision counter, so a view check sees only the current owner/wallet. Any stale binding can be invalidated by **anyone** at any time (`unbind`), which ends that epoch for good; a keeper watching ERC-8004 `Transfer` / `MetadataSet("agentWallet")` events must call it; governance can also suspend | flip-back inside a window nobody observes; fully closing it needs an upstream revision/nonce (open, reported by review on PR #25) |
+| Wallet or owner flip-back (W1 → W2 → W1, or NFT away and back) re-activates the old epoch | ERC-8004 exposes no revision counter, so a view check sees only the current owner/wallet. Any stale binding can be invalidated by **anyone** at any time (`unbind`), which ends that epoch for good. The Phase B keeper does this on every `Transfer` / `MetadataSet("agentWallet")` event and raises a `flipback` alert when the binding is backed again before it runs; governance then suspends. Accepted for Phase A/B by the maintainer (PR #25) | flip-back inside a window nobody observes; fully closing it needs an upstream revision/nonce (open, reported by review on PR #25) |
 | Governance suspension cleared by unbind + rebind | suspension stored per `agentId`, independent of the binding; `bind` refuses a suspended agent | — (fixed after review on PR #25) |
 | Colluding attester withdraws a fraudulent grant before governance strikes | strike tracked per grant, separately from XP revocation; governance can strike a withdrawn grant once | — (fixed after review on PR #25) |
 
@@ -285,7 +308,7 @@ Not before the registry is stable; until then this stays a design note.
 | Phase | Scope | Exit gate |
 |---|---|---|
 | A ✅ | `AgentBindingRegistryV01` + `AgentXPResolverV01` + `AgentTierGateV01` against the official ERC-8004 Identity contracts (vendored, SHA-256 pinned) | hardhat tests incl. transfer → inactive, epoch reset, slot limits, sibling-collusion, fail-closed on registry revert; mutation gate as in DECISION-002 |
-| B | `GFLOReputationPublisherV01` against a local Reputation Registry | publish/unpublish idempotence, self-feedback guard, ERC-8004 revert does not touch XP |
+| B ✅ | `GFLOReputationPublisherV01` + keeper against the official ERC-8004 Reputation Registry (vendored, SHA-256 pinned) | publish/unpublish idempotence, self-feedback guard, ERC-8004 revert does not touch XP |
 | C | Sepolia or Base Sepolia (both have ERC-8004 + EAS); backend `/api/agents/*` | one rule: *merged PR with passing CI by a coding agent*, CI bot as attester, ≤ 20 consenting operators |
 | D | Measure: verified tasks, revocations, false positives, strikes, consumer reads | decide on mainnet / Base only after independent review |
 
