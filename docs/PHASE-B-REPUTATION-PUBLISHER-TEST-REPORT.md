@@ -25,7 +25,7 @@ Date: 2026-11-19 · Scope: DESIGN-003 Phase B · Local Hardhat only, **not deplo
 
 ## Results
 
-`tests-v02`: **52 passing** (8 new in `test/ReputationPhaseB.erc8004.cjs`, 44 existing).
+`tests-v02`: **54 passing** (10 in `test/ReputationPhaseB.erc8004.cjs`, 44 existing).
 
 | Area | Proven |
 |---|---|
@@ -36,6 +36,13 @@ Date: 2026-11-19 · Scope: DESIGN-003 Phase B · Local Hardhat only, **not deplo
 | ERC-8004 rules | an operator approving the publisher only blocks their own mirroring |
 | Fail-safe | pause blocks publishing only; a broken ERC-8004 upgrade blocks mirroring but leaves agent XP and tier unchanged |
 | Keeper | dry run sends nothing; publishes; idempotent; after a sale it unbinds and retracts; on a W2 → W1 → W2 flip-back before it runs it raises exactly one `flipback` alert and leaves the entry live for governance |
+
+## Review fixes (PR #29)
+
+| Finding | Fix | Evidence |
+|---|---|---|
+| P2: a change in the same block as the bind shares its timestamp and was skipped forever | changes are ordered by `(blockNumber, logIndex)` against the `AgentBound` event of the current epoch | new test mines bind + transfer in one block; fails on the previous keeper, passes now |
+| P2: re-setting the same wallet raised a false `flipback` alert on every tick | an alert needs a real departure (a `Transfer`, or a wallet set to a different address); a suspended agent is not re-alerted | new test fails on the previous keeper, passes now |
 
 ## Mutation gate
 

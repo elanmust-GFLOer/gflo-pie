@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 
 // DESIGN-003 Phase B: GFLO as a trusted ERC-8004 reputation client, plus the agent keeper.
 // Official ERC-8004 Identity + Reputation registries (vendored, pinned), real EAS. No mocks.
@@ -175,6 +175,40 @@ describe("DESIGN-003 Phase B — ERC-8004 reputation publisher and agent keeper"
       const flip = await keeper.tick(k);
       expect(flip.filter((x) => x.type === "flipback").map((x) => x.agentId)).to.deep.equal([b]);
       expect(await publisher.feedbackIndex(uid2)).to.equal(1n); // still eligible, stays live until governance acts
+    });
+
+    it("review fix: a transfer in the same block as the bind is still seen as a later change", async function () {
+      const { op, op2, w1, outsider, identity, binding, agentRes, publisher, register, setWallet } = await setupB();
+      const k = { identity: identity.connect(outsider), binding: binding.connect(outsider),
+        agentXP: agentRes.connect(outsider), publisher: publisher.connect(outsider) };
+      const a = await register(op);
+      await setWallet(op, a, w1);
+      const nonce = await ethers.provider.getTransactionCount(op.address);
+      await network.provider.send("evm_setAutomine", [false]);
+      const t1 = await binding.connect(op).bind(a, { gasLimit: 500000, nonce });
+      const t2 = await identity.connect(op).transferFrom(op.address, op2.address, a, { gasLimit: 500000, nonce: nonce + 1 });
+      await network.provider.send("evm_mine");
+      await network.provider.send("evm_setAutomine", [true]);
+      const [r1, r2] = [await ethers.provider.getTransactionReceipt(t1.hash), await ethers.provider.getTransactionReceipt(t2.hash)];
+      expect([r1.status, r2.status]).to.deep.equal([1, 1]);
+      expect(r1.blockNumber).to.equal(r2.blockNumber); // same block, same timestamp
+      expect((await binding.getBinding(a)).operator).to.equal(op.address);
+      const acts = await keeper.tick(k);
+      expect(acts.map((x) => x.type)).to.deep.equal(["unbind"]);
+      expect((await binding.getBinding(a)).operator).to.equal(ethers.ZeroAddress);
+    });
+
+    it("review fix: re-setting the same wallet is not a flip-back; a suspended agent is not re-alerted", async function () {
+      const { gov, op, w1, w2, outsider, identity, binding, agentRes, publisher, newBoundAgent, setWallet } = await setupB();
+      const k = { identity: identity.connect(outsider), binding: binding.connect(outsider),
+        agentXP: agentRes.connect(outsider), publisher: publisher.connect(outsider) };
+      const a = await newBoundAgent(op, w1);
+      await setWallet(op, a, w1); // idempotent ERC-8004 update: MetadataSet, no change
+      expect(await keeper.tick(k)).to.deep.equal([]);
+      await setWallet(op, a, w2); await setWallet(op, a, w1); // genuine flip-back
+      expect((await keeper.tick(k)).map((x) => x.type)).to.deep.equal(["flipback"]);
+      await binding.connect(gov).setSuspended(a, true, id("FLIPBACK"));
+      expect(await keeper.tick(k)).to.deep.equal([]); // governance acted: no repeated alert
     });
   });
 });

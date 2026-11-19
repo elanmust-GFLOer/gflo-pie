@@ -4,16 +4,27 @@
 // stateless apart from `fromBlock`, so it can run from cron or a worker.
 //
 // What it does, in order:
-//   1. ERC-8004 watch: for every bound agent touched by an identity `Transfer` or
-//      `MetadataSet("agentWallet")` event, end a stale binding with the permissionless
-//      `unbind`. If the binding is backed again (wallet/owner flip-back, DESIGN-003 §9),
-//      it cannot be unbound by anyone but the operator: report a `flipback` alert so
-//      governance can suspend the agent.
+//   1. ERC-8004 watch: for every bound agent with an identity `Transfer` or
+//      `MetadataSet("agentWallet")` event after its bind (by block and log position), end a
+//      stale binding with the permissionless `unbind`. If the binding is backed again after a
+//      real departure (wallet/owner flip-back, DESIGN-003 §9), only the operator could unbind:
+//      report a `flipback` alert so governance can suspend the agent (not repeated once suspended).
 //   2. Unpublish: retract every live ERC-8004 entry whose grant is no longer eligible.
 //   3. Publish: mirror every finalized, eligible grant into ERC-8004.
 // Every on-chain step is simulated with staticCall first; dryRun never sends a transaction.
 
 const AGENT_WALLET_KEY = "agentWallet";
+const ZERO = "0x0000000000000000000000000000000000000000";
+
+const later = (a, b) => a[0] > b[0] || (a[0] === b[0] && a[1] > b[1]);
+
+// Position of the AgentBound event that created the current epoch. If it is older than the scan
+// window, every scanned change is after it.
+async function bindPosition(binding, agentId, epoch, fromBlock, toBlock) {
+  const evs = await binding.queryFilter(binding.filters.AgentBound(agentId), fromBlock, toBlock);
+  const ev = evs.filter((e) => BigInt(e.args.epoch) === BigInt(epoch)).pop();
+  return ev ? [ev.blockNumber, ev.index] : [-1, -1];
+}
 
 async function tick({ identity, binding, agentXP, publisher, fromBlock = 0, toBlock = "latest", dryRun = false, log = () => {} }) {
   const actions = [];
@@ -32,30 +43,37 @@ async function tick({ identity, binding, agentXP, publisher, fromBlock = 0, toBl
   };
 
   // 1. ERC-8004 changes on bound agents.
-  const touched = new Map(); // agentId -> latest block number of a relevant change
-  const note = (agentId, blockNumber) => {
+  // Events are ordered by (blockNumber, logIndex), never by timestamp: a bind and a change in the
+  // same block share a timestamp. A flip-back needs a real departure: a transfer (ERC-8004 then
+  // clears the wallet) or a wallet set to a different address; re-setting the same wallet is not one.
+  const changes = new Map(); // agentId -> [{ pos, departsFrom(wallet) }]
+  const add = (agentId, ev, departsFrom) => {
     const key = agentId.toString();
-    touched.set(key, Math.max(touched.get(key) ?? 0, blockNumber));
+    if (!changes.has(key)) changes.set(key, []);
+    changes.get(key).push({ pos: [ev.blockNumber, ev.index], departsFrom });
   };
   for (const ev of await identity.queryFilter(identity.filters.Transfer(), fromBlock, toBlock)) {
-    if (ev.args.from !== "0x0000000000000000000000000000000000000000") note(ev.args.tokenId, ev.blockNumber);
+    if (ev.args.from !== ZERO) add(ev.args.tokenId, ev, () => true);
   }
   for (const ev of await identity.queryFilter(identity.filters.MetadataSet(), fromBlock, toBlock)) {
-    if (ev.args.metadataKey === AGENT_WALLET_KEY) note(ev.args.agentId, ev.blockNumber);
+    if (ev.args.metadataKey !== AGENT_WALLET_KEY) continue;
+    const value = ev.args.metadataValue;
+    const wallet = value && value.length === 42 ? value.toLowerCase() : ZERO; // 20-byte packed address or ""
+    add(ev.args.agentId, ev, (boundWallet) => wallet !== boundWallet.toLowerCase());
   }
-  for (const [key, changedAt] of touched) {
+  for (const [key, list] of changes) {
     const agentId = BigInt(key);
     const b = await binding.getBinding(agentId);
-    if (b.operator === "0x0000000000000000000000000000000000000000") continue;
-    const provider = identity.runner.provider ?? identity.runner; // signer or bare provider
-    const changeBlock = await provider.getBlock(changedAt);
-    if (BigInt(changeBlock.timestamp) <= BigInt(b.boundAt)) continue; // change predates this binding
+    if (b.operator === ZERO) continue;
+    const bindPos = await bindPosition(binding, agentId, b.epoch, fromBlock, toBlock);
+    const after = list.filter((c) => later(c.pos, bindPos));
+    if (after.length === 0) continue; // every change predates this binding
     const unbound = await send(binding, "unbind", [agentId], { type: "unbind", agentId, epoch: Number(b.epoch) });
-    if (!unbound) {
-      actions.push({ type: "flipback", agentId, epoch: Number(b.epoch), changedAtBlock: changedAt,
-        note: "ERC-8004 owner/wallet changed after binding but is backed again; governance should suspend" });
-      log(`flipback alert agent ${agentId} epoch ${b.epoch}`);
-    }
+    if (unbound || b.suspended) continue; // ended, or governance already acted
+    if (!after.some((c) => c.departsFrom(b.agentWallet))) continue; // idempotent updates only
+    actions.push({ type: "flipback", agentId, epoch: Number(b.epoch),
+      note: "ERC-8004 owner/wallet left and returned after binding; governance should suspend" });
+    log(`flipback alert agent ${agentId} epoch ${b.epoch}`);
   }
 
   // 2. Retract entries that are no longer eligible.
