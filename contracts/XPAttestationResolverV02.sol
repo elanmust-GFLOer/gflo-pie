@@ -58,6 +58,9 @@ contract XPAttestationResolverV02 is SchemaResolver {
     mapping(bytes32 => bool) public usedEvents;
     mapping(bytes32 => bool) public usedEvidence;
     mapping(address => uint64) public validEarnedXP;
+    /// @notice Last time a member's VALID XP decreased (revocation). Tier progression uses it so a
+    ///         dip below a threshold cannot be hidden by recovering before anyone looks.
+    mapping(address => uint64) public lastValidXPDropAt;
     mapping(address => mapping(bytes32 => uint32)) public claimsPerRule;
     mapping(address => mapping(uint256 => uint32)) public dailyXP;
     mapping(address => mapping(uint256 => uint32)) public weeklyXP;
@@ -190,7 +193,10 @@ contract XPAttestationResolverV02 is SchemaResolver {
     function _revokeGrant(bytes32 uid, bytes32 reason) private returns (bool) {
         Grant storage grant = grants[uid];
         if (grant.status != Status.PENDING && grant.status != Status.VALID) return false;
-        if (grant.status == Status.VALID) validEarnedXP[grant.recipient] -= grant.amount;
+        if (grant.status == Status.VALID) {
+            validEarnedXP[grant.recipient] -= grant.amount;
+            lastValidXPDropAt[grant.recipient] = uint64(block.timestamp);
+        }
         grant.status = Status.REVOKED;
         emit GrantRevoked(uid, grant.recipient, grant.amount, reason);
         return true;

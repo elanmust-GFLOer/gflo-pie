@@ -153,13 +153,25 @@ describe("DESIGN-004 — Paths and tier progression by XP + time (no purchase)",
       await expect(progression.connect(member).complete()).to.be.revertedWithCustomError(progression, "NotQualifying");
     });
 
-    it("completion re-checks the threshold even if nobody cancelled", async function () {
+    it("a revocation during the period voids completion even if nobody cancelled", async function () {
       const { gov, member, resolver, progression, earn } = await setup();
       const uids = await earn(member.address, REF_RULE, 3);
       await progression.connect(member).start();
       await resolver.connect(gov).governanceRevoke(uids[0], id("FRAUD"));
       await advance(30 * DAY);
-      await expect(progression.connect(member).complete()).to.be.revertedWithCustomError(progression, "InsufficientXP");
+      await expect(progression.connect(member).complete()).to.be.revertedWithCustomError(progression, "QualificationInvalidated");
+    });
+
+    it("review fix: a dip below the threshold that recovers before anyone cancels still voids the clock", async function () {
+      const { gov, member, resolver, progression, earn } = await setup();
+      const uids = await earn(member.address, REF_RULE, 3);                // 1285
+      await progression.connect(member).start();
+      await resolver.connect(gov).governanceRevoke(uids[0], id("FRAUD"));  // 865 < 1000, nobody cancels
+      await earn(member.address, REF_RULE, 2);                              // recovers to 1705
+      await advance(30 * DAY);
+      await expect(progression.connect(member).complete()).to.be.revertedWithCustomError(progression, "QualificationInvalidated");
+      await progression.cancelIfBelow(member.address);                      // anyone can clear a voided qualification
+      await expect(progression.connect(member).start()).to.emit(progression, "QualificationStarted"); // fresh clock
     });
 
     it("requires the next tier to be the member's selected goal", async function () {

@@ -10,6 +10,11 @@ interface IPIEForProgression {
 interface ICanonicalXPForProgression {
     function pieCore() external view returns (address);
     function totalXP(address user) external view returns (uint64);
+    function activeSource() external view returns (address policy, bytes32 runtimeCodehash, address policyOwner);
+}
+
+interface IXPDropSource {
+    function lastValidXPDropAt(address account) external view returns (uint64);
 }
 
 /// @title TierProgressionV01
@@ -20,7 +25,9 @@ interface ICanonicalXPForProgression {
 ///                          member's selected goal; the qualification clock starts.
 ///           2. complete(): after QUALIFY_PERIOD, XP is still at or above the threshold AND grew by
 ///                          at least SUSTAIN_XP during the period (sustained activity, not a peak).
-///         Anyone may cancel a qualification whose XP fell below the threshold (e.g. revoked XP).
+///         Any decrease of VALID XP during the period (a revocation) voids the qualification, even if
+///         XP recovers before anyone notices: the threshold must be HELD, so the clock restarts.
+///         Anyone may cancel a qualification that is below the threshold or voided.
 /// @dev PILOT ONLY, not audited. No token, balance or payment is read here: patience and verified
 ///      work are the only inputs. Canonical XP comes from TrustedXPSourceRegistryV02; a paused or
 ///      failing registry reverts every step (fail closed).
@@ -47,6 +54,7 @@ contract TierProgressionV01 {
     error InsufficientSustainedActivity();
     error TierChanged();
     error StillQualified();
+    error QualificationInvalidated();
 
     event QualificationStarted(address indexed account, uint8 indexed targetTier, uint64 xp, uint64 completesAt);
     event QualificationCancelled(address indexed account, uint8 indexed targetTier, uint64 xp);
@@ -78,6 +86,7 @@ contract TierProgressionV01 {
         if (q.startedAt == 0) revert NotQualifying();
         if (block.timestamp < uint256(q.startedAt) + QUALIFY_PERIOD) revert TooEarly();
         if (_nextTier(msg.sender) != q.targetTier) revert TierChanged();
+        if (_droppedSince(msg.sender, q.startedAt)) revert QualificationInvalidated();
         uint64 xp = canonicalXP.totalXP(msg.sender);
         if (xp < threshold(q.targetTier)) revert InsufficientXP();
         if (xp < q.xpAtStart + SUSTAIN_XP) revert InsufficientSustainedActivity();
@@ -86,14 +95,22 @@ contract TierProgressionV01 {
         emit TierEarned(msg.sender, q.targetTier, xp);
     }
 
-    /// @notice Permissionless: ends a qualification whose canonical XP dropped below the threshold.
+    /// @notice Permissionless: ends a qualification whose canonical XP is below the threshold, or
+    ///         that a VALID-XP decrease voided since it started.
     function cancelIfBelow(address account) external {
         Qualification memory q = qualifications[account];
         if (q.startedAt == 0) revert NotQualifying();
         uint64 xp = canonicalXP.totalXP(account);
-        if (xp >= threshold(q.targetTier)) revert StillQualified();
+        if (xp >= threshold(q.targetTier) && !_droppedSince(account, q.startedAt)) revert StillQualified();
         delete qualifications[account];
         emit QualificationCancelled(account, q.targetTier, xp);
+    }
+
+    /// @dev Asks the registry's ACTIVE policy (the XP resolver) when VALID XP last decreased. A policy
+    ///      without this signal makes progression revert (fail closed), never skip the check.
+    function _droppedSince(address account, uint64 since) private view returns (bool) {
+        (address policy, , ) = canonicalXP.activeSource();
+        return IXPDropSource(policy).lastValidXPDropAt(account) >= since;
     }
 
     function _nextTier(address account) private view returns (uint8 next) {

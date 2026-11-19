@@ -132,10 +132,21 @@ a precondition of standing, which contradicts §0. Proposal:
 | `XPAttestationResolverV02` | V01 plus Paths: unassigned rules are refused, the bonus counts against every cap, and the granted amount is stored per grant (exact revocation). Trust level is judged on the base amount |
 | `TierProgressionV01` | `start` at the threshold (Tier 1 = 1 000, Tier 2 = 5 000 XP, the selected goal required); `complete` after 30 days only if XP is still at the threshold **and** grew by ≥ 200; anyone can cancel a qualification that fell below; binds to PIE core instead of the burn-for-tier Ignition. No token, balance or payment is read |
 
-Tests: `tests-v02/test/PathsProgression.cjs`, 10 tests, no token anywhere. The full suite is 66 passing.
+Tests: `tests-v02/test/PathsProgression.cjs`, 11 tests, no token anywhere. The full suite is 67 passing.
 Mutation gate (each applied alone): bonus on every Path, unassigned rules allowed, rewritable
 assignment, caps ignoring the bonus, base amount stored, no sustained-growth check, no waiting
 period, no threshold re-check, goal not required, cancelling a valid qualification. **All 10 killed.**
+
+**Review fix (PR #30, Codex P2).** A dip below the threshold that recovered before anyone called
+`cancelIfBelow` kept the original clock, so a tier could be earned without holding the threshold for
+30 days. `XPAttestationResolverV02` now records `lastValidXPDropAt` on every VALID-XP revocation;
+`TierProgressionV01` reads it from the registry's active policy and voids the qualification on any
+drop since `start` (`QualificationInvalidated`; anyone can clear it, and the member starts a fresh
+clock). A policy without this signal makes progression revert, never skip the check. New test fails
+on the previous contracts and passes now. Mutations of the new guard (no drop check, drops never
+recorded, voided qualification not cancellable) are all killed.
+Consequence: because canonical XP can only fall through a revocation, the threshold re-check at
+completion is now defence in depth; its mutation is no longer observable by tests.
 
 Open for §7.2: OctoPush review outbox and EAS bridge, wallet-link signature, earned-plan check on
 `/pricing` and OctoPass.
