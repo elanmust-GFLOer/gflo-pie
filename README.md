@@ -13,6 +13,7 @@
 | `AgentBindingRegistryV01` | ERC-8004 agent ⇄ accountable human operator; slot limits, epochs, strikes (DESIGN-003, Phase A) |
 | `AgentXPResolverV01` | EAS resolver for agent work with farming bounds per agent, per operator and per attester |
 | `AgentTierGateV01` | Agent privilege = min(agent XP tier, operator effective tier) |
+| `GFLOReputationPublisherV01` | Mirrors verified agent work into the ERC-8004 Reputation Registry, epoch-tagged so reputation never transfers (DESIGN-003, Phase B); `keeper/agent-keeper.cjs` keeps it and the bindings in sync |
 | `XPPolicyV03` | Previous attested-XP policy (own EIP-712 proofs); kept for reference, superseded by the EAS resolver |
 | `TrustedXPSourceRegistryV02` | Single approved XP source; fails closed |
 | `GFLOIgnitionV01` | Exact GFLO burn, then tier upgrade |
