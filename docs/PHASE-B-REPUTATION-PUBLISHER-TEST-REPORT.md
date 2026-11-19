@@ -25,7 +25,7 @@ Date: 2026-11-19 · Scope: DESIGN-003 Phase B · Local Hardhat only, **not deplo
 
 ## Results
 
-`tests-v02`: **54 passing** (10 in `test/ReputationPhaseB.erc8004.cjs`, 44 existing).
+`tests-v02`: **56 passing** (12 in `test/ReputationPhaseB.erc8004.cjs`, 44 existing).
 
 | Area | Proven |
 |---|---|
@@ -43,6 +43,8 @@ Date: 2026-11-19 · Scope: DESIGN-003 Phase B · Local Hardhat only, **not deplo
 |---|---|---|
 | P2: a change in the same block as the bind shares its timestamp and was skipped forever | changes are ordered by `(blockNumber, logIndex)` against the `AgentBound` event of the current epoch | new test mines bind + transfer in one block; fails on the previous keeper, passes now |
 | P2: re-setting the same wallet raised a false `flipback` alert on every tick | an alert needs a real departure (a `Transfer`, or a wallet set to a different address); a suspended agent is not re-alerted | new test fails on the previous keeper, passes now |
+| P2: a keeper whose signer is also an operator would unbind its own still-backed agent (the operator may always unbind, so `staticCall` was no staleness test) | the keeper compares the ERC-8004 owner and wallet with the binding before calling `unbind` | new test fails on the previous keeper, passes now |
+| P2: advancing `fromBlock` after a tick would drop earlier grants and entries from re-checks forever | the parameter is now a required `deployBlock`, documented as the deployment block; every tick rescans the full history | new test: the keeper refuses to run without it |
 
 ## Mutation gate
 
@@ -65,6 +67,6 @@ Each mutation applied alone, sources re-prepared, Phase B suite run:
   ERC-8004 summaries stay farmable by design.
 - A flip-back that happens between keeper runs leaves the agent active until governance
   suspends it (accepted, DESIGN-003 §9).
-- The keeper is not deployed yet and has no persistence beyond `fromBlock`; scanning from the
-  deployment block each tick is fine for a pilot, not for scale.
+- The keeper is not deployed yet and keeps no state: it rescans from `deployBlock` every tick.
+  Fine for a pilot; at scale it needs a persisted set of grant UIDs.
 - Not done: Phase C testnet pilot, backend `/api/agents/<id>`, Phase D measurement.

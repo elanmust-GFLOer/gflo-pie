@@ -137,17 +137,17 @@ describe("DESIGN-003 Phase B — ERC-8004 reputation publisher and agent keeper"
       const a = await newBoundAgent(op, w1);
       const uid = await finalizedGrant(a, w1);
 
-      const dry = await keeper.tick({ ...k, dryRun: true });
+      const dry = await keeper.tick({ ...k, deployBlock: 0, dryRun: true });
       expect(dry.map((x) => [x.type, x.sent])).to.deep.equal([["publish", false]]);
       expect(await publisher.feedbackIndex(uid)).to.equal(0n);
 
-      const first = await keeper.tick(k);
+      const first = await keeper.tick({ ...k, deployBlock: 0 });
       expect(first.map((x) => x.type)).to.deep.equal(["publish"]);
       expect((await summary(a)).count).to.equal(1n);
-      expect(await keeper.tick(k)).to.deep.equal([]); // idempotent
+      expect(await keeper.tick({ ...k, deployBlock: 0 })).to.deep.equal([]); // idempotent
 
       await identity.connect(op).transferFrom(op.address, op2.address, a);
-      const after = await keeper.tick(k);
+      const after = await keeper.tick({ ...k, deployBlock: 0 });
       expect(after.map((x) => x.type)).to.deep.equal(["unbind", "unpublish"]);
       expect((await binding.getBinding(a)).operator).to.equal(ethers.ZeroAddress);
       expect(await publisher.feedbackIndex(uid)).to.equal(0n);
@@ -159,20 +159,20 @@ describe("DESIGN-003 Phase B — ERC-8004 reputation publisher and agent keeper"
         agentXP: agentRes.connect(outsider), publisher: publisher.connect(outsider) };
       const a = await newBoundAgent(op, w1);
       const uid = await finalizedGrant(a, w1);
-      await keeper.tick(k);
+      await keeper.tick({ ...k, deployBlock: 0 });
       expect(await publisher.feedbackIndex(uid)).to.equal(1n);
 
       await setWallet(op, a, w2);                       // binding stale: keeper unpublishes...
-      const during = await keeper.tick(k);
+      const during = await keeper.tick({ ...k, deployBlock: 0 });
       expect(during.map((x) => x.type)).to.include("unpublish");
       // ...it also unbinds, which ends the epoch for good; replay the flip-back without a tick in between:
       const b = await newBoundAgent(op, w2);            // fresh agent on a fresh wallet... (w2 freed by unbind)
       const uid2 = await finalizedGrant(b, w2);
-      await keeper.tick(k);
+      await keeper.tick({ ...k, deployBlock: 0 });
       await setWallet(op, b, w1);
       await setWallet(op, b, w2);                       // W2 -> W1 -> W2 before the keeper runs
       expect(await binding.isActive(b)).to.equal(true); // backed again: nobody but the operator can unbind
-      const flip = await keeper.tick(k);
+      const flip = await keeper.tick({ ...k, deployBlock: 0 });
       expect(flip.filter((x) => x.type === "flipback").map((x) => x.agentId)).to.deep.equal([b]);
       expect(await publisher.feedbackIndex(uid2)).to.equal(1n); // still eligible, stays live until governance acts
     });
@@ -193,7 +193,7 @@ describe("DESIGN-003 Phase B — ERC-8004 reputation publisher and agent keeper"
       expect([r1.status, r2.status]).to.deep.equal([1, 1]);
       expect(r1.blockNumber).to.equal(r2.blockNumber); // same block, same timestamp
       expect((await binding.getBinding(a)).operator).to.equal(op.address);
-      const acts = await keeper.tick(k);
+      const acts = await keeper.tick({ ...k, deployBlock: 0 });
       expect(acts.map((x) => x.type)).to.deep.equal(["unbind"]);
       expect((await binding.getBinding(a)).operator).to.equal(ethers.ZeroAddress);
     });
@@ -204,11 +204,32 @@ describe("DESIGN-003 Phase B — ERC-8004 reputation publisher and agent keeper"
         agentXP: agentRes.connect(outsider), publisher: publisher.connect(outsider) };
       const a = await newBoundAgent(op, w1);
       await setWallet(op, a, w1); // idempotent ERC-8004 update: MetadataSet, no change
-      expect(await keeper.tick(k)).to.deep.equal([]);
+      expect(await keeper.tick({ ...k, deployBlock: 0 })).to.deep.equal([]);
       await setWallet(op, a, w2); await setWallet(op, a, w1); // genuine flip-back
-      expect((await keeper.tick(k)).map((x) => x.type)).to.deep.equal(["flipback"]);
+      expect((await keeper.tick({ ...k, deployBlock: 0 })).map((x) => x.type)).to.deep.equal(["flipback"]);
       await binding.connect(gov).setSuspended(a, true, id("FLIPBACK"));
-      expect(await keeper.tick(k)).to.deep.equal([]); // governance acted: no repeated alert
+      expect(await keeper.tick({ ...k, deployBlock: 0 })).to.deep.equal([]); // governance acted: no repeated alert
+    });
+
+    it("review fix: the keeper refuses to run without the deployment block", async function () {
+      const { identity, binding, agentRes, publisher } = await setupB();
+      let err;
+      try { await keeper.tick({ identity, binding, agentXP: agentRes, publisher }); } catch (e) { err = e; }
+      expect(err && err.message).to.match(/deployBlock is required/);
+    });
+
+    it("review fix: a keeper that is also an operator never unbinds its own still-backed agent", async function () {
+      const { op, w1, identity, binding, agentRes, publisher, newBoundAgent, setWallet, finalizedGrant } = await setupB();
+      const k = { identity: identity.connect(op), binding: binding.connect(op),
+        agentXP: agentRes.connect(op), publisher: publisher.connect(op) }; // keeper signer = operator
+      const a = await newBoundAgent(op, w1);
+      const uid = await finalizedGrant(a, w1);
+      await keeper.tick({ ...k, deployBlock: 0 });
+      expect(await publisher.feedbackIndex(uid)).to.equal(1n);
+      await setWallet(op, a, w1); // idempotent update: still backed
+      expect(await keeper.tick({ ...k, deployBlock: 0 })).to.deep.equal([]);
+      expect(await binding.isActive(a)).to.equal(true);
+      expect(await publisher.feedbackIndex(uid)).to.equal(1n);
     });
   });
 });

@@ -1,7 +1,7 @@
 "use strict";
 // GFLO agent keeper (DESIGN-003 Phase B). Dependency-free: callers pass ethers v6 Contract
 // objects connected to a signer (or a provider, for dryRun). One `tick` is idempotent and
-// stateless apart from `fromBlock`, so it can run from cron or a worker.
+// stateless: it rescans from `deployBlock` every time, so it can run from cron or a worker.
 //
 // What it does, in order:
 //   1. ERC-8004 watch: for every bound agent with an identity `Transfer` or
@@ -16,6 +16,17 @@
 const AGENT_WALLET_KEY = "agentWallet";
 const ZERO = "0x0000000000000000000000000000000000000000";
 
+// Mirrors AgentBindingRegistryV01._backedByIdentity: any failing read counts as stale.
+async function isStale(identity, agentId, b) {
+  try {
+    const owner = await identity.ownerOf(agentId);
+    const wallet = await identity.getAgentWallet(agentId);
+    return owner.toLowerCase() !== b.operator.toLowerCase() || wallet.toLowerCase() !== b.agentWallet.toLowerCase();
+  } catch {
+    return true;
+  }
+}
+
 const later = (a, b) => a[0] > b[0] || (a[0] === b[0] && a[1] > b[1]);
 
 // Position of the AgentBound event that created the current epoch. If it is older than the scan
@@ -26,7 +37,12 @@ async function bindPosition(binding, agentId, epoch, fromBlock, toBlock) {
   return ev ? [ev.blockNumber, ev.index] : [-1, -1];
 }
 
-async function tick({ identity, binding, agentXP, publisher, fromBlock = 0, toBlock = "latest", dryRun = false, log = () => {} }) {
+// `deployBlock` is the block the GFLO contracts were deployed in. Every tick rescans the FULL
+// history from there: it is the keeper's only memory. Never advance it to the last processed
+// block, or grants and entries seen earlier would never be re-checked (revocations, suspensions).
+async function tick({ identity, binding, agentXP, publisher, deployBlock, toBlock = "latest", dryRun = false, log = () => {} }) {
+  if (deployBlock === undefined || deployBlock === null) throw new Error("deployBlock is required (the GFLO deployment block)");
+  const fromBlock = deployBlock;
   const actions = [];
   const send = async (contract, method, args, record) => {
     try {
@@ -68,8 +84,13 @@ async function tick({ identity, binding, agentXP, publisher, fromBlock = 0, toBl
     const bindPos = await bindPosition(binding, agentId, b.epoch, fromBlock, toBlock);
     const after = list.filter((c) => later(c.pos, bindPos));
     if (after.length === 0) continue; // every change predates this binding
-    const unbound = await send(binding, "unbind", [agentId], { type: "unbind", agentId, epoch: Number(b.epoch) });
-    if (unbound || b.suspended) continue; // ended, or governance already acted
+    // Staleness is checked against ERC-8004 directly: a keeper whose signer is also this agent's
+    // operator could otherwise unbind a still-backed agent (the operator may always unbind).
+    if (await isStale(identity, agentId, b)) {
+      await send(binding, "unbind", [agentId], { type: "unbind", agentId, epoch: Number(b.epoch) });
+      continue;
+    }
+    if (b.suspended) continue; // governance already acted
     if (!after.some((c) => c.departsFrom(b.agentWallet))) continue; // idempotent updates only
     actions.push({ type: "flipback", agentId, epoch: Number(b.epoch),
       note: "ERC-8004 owner/wallet left and returned after binding; governance should suspend" });
