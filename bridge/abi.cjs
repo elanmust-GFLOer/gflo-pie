@@ -12,6 +12,9 @@ const ABI = {
   resolver: [
     "function schemaUID() view returns (bytes32)",
     "function usedEvents(bytes32) view returns (bool)",
+    "function grants(bytes32) view returns (address recipient, bytes32 ruleId, uint16 amount, uint64 finalizesAt, address attester, uint8 status)",
+    "function finalize(bytes32 uid)",
+    "event GrantPending(bytes32 indexed uid, address indexed recipient, address indexed attester, uint16 amount, uint64 finalizesAt)",
     "error Paused()", "error WrongSchema()", "error InvalidAttestation()", "error InvalidRule()",
     "error InvalidAttester()", "error InvalidIdentity()", "error Replay()", "error LimitReached()",
   ],

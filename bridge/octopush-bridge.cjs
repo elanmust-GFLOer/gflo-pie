@@ -12,6 +12,7 @@
 //     expires and the event is retried, never marked "failed" by accident.
 //   - Crash recovery: if an event's eventId is already used on chain, the bridge looks up its own
 //     earlier attestation and reports that UID instead of attesting twice.
+//   - Grants this bridge attested are finalized once their challenge period is over.
 //   - dryRun never sends a transaction and never reports.
 
 const ISSUER_DOMAIN = { name: "OctoPush GFLO Issuer", version: "1", chainId: 84532 };
@@ -131,6 +132,19 @@ async function tick(ctx) {
       }
       const msg = reviewMessage(ethers, ev);
       const author = msg.author;
+      // Recovery first: an attestation that already exists must be reported, whatever the
+      // eligibility of a NEW attestation would be now (e.g. the reviewer's tier dropped since).
+      const eventId = msg.reviewId;
+      if (await resolver.usedEvents(eventId)) {
+        const existing = await findOwnAttestation(author, eventId);
+        if (existing) {
+          await report(ev.id, { status: "attested", attestationUid: existing.uid, txHash: existing.txHash },
+            { ...base, outcome: "attested", uid: existing.uid, recovered: true });
+        } else {
+          await report(ev.id, { status: "rejected", reason: "event_already_used" }, { ...base, outcome: "rejected", reason: "event_already_used" });
+        }
+        continue;
+      }
       const identity = await core.getIdentity(author);
       if (!identity.exists) {
         await report(ev.id, { status: "rejected", reason: "author_no_identity" }, { ...base, outcome: "rejected", reason: "author_no_identity" });
@@ -145,18 +159,6 @@ async function tick(ctx) {
       }
       if (BigInt(reviewerTier) < BigInt(minReviewerTier)) {
         await report(ev.id, { status: "rejected", reason: "reviewer_tier" }, { ...base, outcome: "rejected", reason: "reviewer_tier" });
-        continue;
-      }
-
-      const eventId = msg.reviewId;
-      if (await resolver.usedEvents(eventId)) {
-        const existing = await findOwnAttestation(author, eventId);
-        if (existing) {
-          await report(ev.id, { status: "attested", attestationUid: existing.uid, txHash: existing.txHash },
-            { ...base, outcome: "attested", uid: existing.uid, recovered: true });
-        } else {
-          await report(ev.id, { status: "rejected", reason: "event_already_used" }, { ...base, outcome: "rejected", reason: "event_already_used" });
-        }
         continue;
       }
 
@@ -214,6 +216,28 @@ async function tick(ctx) {
       }
     } catch (err) {
       log(`revocation ${r.id}: ${err.message}`);
+      actions.push({ ...base, outcome: "retry_later" });
+    }
+  }
+  // ── 3. Finalize this bridge's grants after the challenge period ──
+  // finalize() is permissionless; without it, attested XP would stay PENDING forever.
+  const provider = eas.runner.provider ?? eas.runner;
+  const now = BigInt((await provider.getBlock("latest")).timestamp);
+  const pending = await resolver.queryFilter(resolver.filters.GrantPending(null, null, bridgeAddress), deployBlock, "latest");
+  for (const ev of pending) {
+    const uid = ev.args.uid;
+    const base = { type: "finalize", uid };
+    try {
+      const g = await resolver.grants(uid);
+      if (BigInt(g.status) !== 1n || now < BigInt(g.finalizesAt)) continue; // not PENDING, or too early
+      await resolver.finalize.staticCall(uid);
+      if (dryRun) { actions.push({ ...base, outcome: "would_finalize" }); continue; }
+      const tx = await resolver.connect(eas.runner).finalize(uid);
+      await tx.wait();
+      actions.push({ ...base, outcome: "finalized", tx: tx.hash });
+      log(`finalized ${uid}`);
+    } catch (err) {
+      log(`finalize ${uid}: ${err.message}`);
       actions.push({ ...base, outcome: "retry_later" });
     }
   }

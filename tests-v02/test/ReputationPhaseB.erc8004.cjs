@@ -211,6 +211,21 @@ describe("DESIGN-003 Phase B — ERC-8004 reputation publisher and agent keeper"
       expect(await keeper.tick({ ...k, deployBlock: 0 })).to.deep.equal([]); // governance acted: no repeated alert
     });
 
+    it("review fix: the keeper finalizes pending agent grants after the challenge period, then publishes them", async function () {
+      const { op, w1, outsider, attCI, identity, binding, agentRes, publisher, newBoundAgent, attest, summary } = await setupB();
+      const k = { identity: identity.connect(outsider), binding: binding.connect(outsider),
+        agentXP: agentRes.connect(outsider), publisher: publisher.connect(outsider), deployBlock: 0 };
+      const a = await newBoundAgent(op, w1);
+      const uid = await attest(attCI, a, w1.address);
+      expect(await keeper.tick(k)).to.deep.equal([]);              // challenge period not over
+      await advance(3 * DAY);
+      const acts = await keeper.tick(k);
+      expect(acts.map((x) => x.type)).to.deep.equal(["finalize"]);
+      expect((await agentRes.grants(uid)).status).to.equal(2n);
+      expect((await keeper.tick(k)).map((x) => x.type)).to.deep.equal(["publish"]);
+      expect((await summary(a)).count).to.equal(1n);
+    });
+
     it("review fix: the keeper refuses to run without the deployment block", async function () {
       const { identity, binding, agentRes, publisher } = await setupB();
       let err;

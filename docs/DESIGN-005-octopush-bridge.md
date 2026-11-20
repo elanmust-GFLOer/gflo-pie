@@ -123,7 +123,7 @@ For each leased event:
    The resolver then applies every on-chain rule: Path, +20% bonus, caps, replay, challenge period.
 4. Report the result. A resolver revert is `rejected` with its reason, never retried blindly.
 
-The keeper finalizes after 3 days.
+The bridge worker finalizes its own grants once the 3-day challenge period is over (`finalize` is permissionless).
 
 ## 7. Earned plan (OctoPush)
 
@@ -187,7 +187,7 @@ row retry, GFLO bridge worker (G1) and contract deployment (Phase C).
 `bridge/octopush-bridge.cjs` (dependency-injected tick), `bridge/run.cjs` (Railway runner, env only,
 dry run unless `BRIDGE_LIVE=1`, retired v3 addresses refused), `bridge/abi.cjs`.
 
-Tests: `tests-v02/test/BridgeWorker.cjs`, 9 tests against the real contracts (EAS, PIE core, Path
+Tests: `tests-v02/test/BridgeWorker.cjs`, 11 tests against the real contracts (EAS, PIE core, Path
 registry, `XPAttestationResolverV02`, Registry, EffectiveTierGate, TierProgression; the reviewer earns
 Tier 1 through `TierProgressionV01`) and a mock of the OctoPush L3 API signed by a test issuer:
 - valid event → attested with the +20% Reformer bonus, PENDING;
@@ -198,9 +198,13 @@ Tier 1 through `TierProgressionV01`) and a mock of the OctoPush L3 API signed by
 - deleted source → EAS revocation, grant REVOKED, reported once;
 - dry run → no transaction, no report;
 - wrong token, missing issuer address, missing `deployBlock` → refused;
-- runner ABIs match the compiled contracts.
+- runner ABIs match the compiled contracts;
+- review fix (PR #31): grants are finalized after the challenge period, so XP actually lands;
+- review fix (PR #31): a lost report is recovered even if the reviewer's tier dropped meanwhile.
 
-Full suite: 76 passing.
+The agent keeper (DESIGN-003) gained the same finalize step for agent grants (review fix, PR #31).
+
+Full suite: 79 passing.
 
 Mutation gate: 8 of 9 killed. The survivor ("5xx not treated as transient") is equivalent: both paths
 leave the event unreported, so the lease expires and it is retried.

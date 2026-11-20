@@ -126,7 +126,7 @@ describe("DESIGN-005 — GFLO bridge worker (OctoPush review events → EAS)", f
     api = await startOctoPush({ issuer });
     const ctx = { ethers, eas: eas.connect(bridgeSigner), resolver, core, tierGate: gate, schemaUID, ruleId: REF_RULE,
       issuerAddress: issuer.address, deployBlock, baseUrl: api.url, token: TOKEN };
-    return { gov, bridgeSigner, author, reviewer, newbie, eas, resolver, core, gate, schemaUID, issuer, ctx };
+    return { gov, bridgeSigner, author, reviewer, newbie, eas, resolver, core, gate, schemaUID, issuer, ctx, reviewerGrants: [...u, g] };
   }
 
   it("attests a valid review event for the author, with the Reformer Path bonus, and reports the UID", async function () {
@@ -196,6 +196,35 @@ describe("DESIGN-005 — GFLO bridge worker (OctoPush review events → EAS)", f
     expect((await resolver.grants(uid)).status).to.equal(3n); // REVOKED
     expect(api.rows.get(row.id).revocationTx).to.match(/^0x[0-9a-f]{64}$/);
     expect(await bridge.tick(ctx)).to.deep.equal([]);
+  });
+
+  it("review fix: finalizes its own grants after the challenge period, so XP actually lands", async function () {
+    const { author, reviewer, resolver, ctx } = await setup();
+    await api.add({ author: author.address, reviewer: reviewer.address });
+    await bridge.tick(ctx);
+    const uid = api.state.reports[0].attestationUid;
+    expect(await bridge.tick(ctx)).to.deep.equal([]);           // still inside the challenge period
+    expect((await resolver.grants(uid)).status).to.equal(1n);
+    await advance(3 * DAY);
+    const acts = await bridge.tick(ctx);
+    expect(acts.map((a) => [a.type, a.outcome])).to.deep.equal([["finalize", "finalized"]]);
+    expect((await resolver.grants(uid)).status).to.equal(2n);   // VALID
+    expect(await resolver.totalXP(author.address)).to.equal(25n + 420n);
+    expect(await bridge.tick(ctx)).to.deep.equal([]);           // idempotent
+  });
+
+  it("review fix: a lost report is recovered even if the reviewer's tier dropped meanwhile", async function () {
+    const { gov, author, reviewer, resolver, gate, ctx, reviewerGrants } = await setup();
+    const row = await api.add({ author: author.address, reviewer: reviewer.address });
+    api.state.failNextResult = true;
+    await bridge.tick(ctx);                                       // attested, report lost
+    await resolver.connect(gov).governanceRevoke(reviewerGrants[0], id("FRAUD"));
+    await resolver.connect(gov).governanceRevoke(reviewerGrants[1], id("FRAUD"));
+    expect(await gate.effectiveTier(reviewer.address)).to.equal(0n);
+    api.rows.get(row.id).leaseExpired = true;
+    const acts = await bridge.tick(ctx);
+    expect(acts[0]).to.include({ outcome: "attested", recovered: true });
+    expect(api.rows.get(row.id).status).to.equal("attested");
   });
 
   it("dry run changes nothing on chain and reports nothing", async function () {
