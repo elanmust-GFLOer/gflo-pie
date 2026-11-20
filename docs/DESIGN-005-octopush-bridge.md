@@ -1,6 +1,6 @@
 # DESIGN-005 — OctoPush ⇄ GFLO bridge (DESIGN-004 §7.2)
 
-Date: 2026-11-19 · Status: **L1–L3 implemented in OctoPush (migrations checked in, not applied)**; L0 apply, L4 and the GFLO bridge worker open. Lovable task prompts:
+Date: 2026-11-19 · Status: **L1–L3 implemented in OctoPush (migrations checked in, not applied)**; GFLO bridge worker (G1) implemented and tested locally; L0–L2 apply, L4 and Phase C deployment open. Lovable task prompts:
 `docs/octopush-bridge/LOVABLE-PROMPTS.hu.md`.
 
 ## 0. Goal and boundaries
@@ -181,3 +181,30 @@ no defaults, and the retired v3 addresses are refused (same blocklist as `gflo-f
 Owner actions done: secrets `GFLO_SIWE_DOMAIN`, `GFLO_ISSUER_PRIVATE_KEY`, `GFLO_ISSUER_ADDRESS`,
 `GFLO_BRIDGE_TOKEN`. Open: apply migrations L0 → L1 → L2 (owner approval), L4 earned plan, `failed`
 row retry, GFLO bridge worker (G1) and contract deployment (Phase C).
+
+## 11. GFLO bridge worker (G1) — `bridge/`
+
+`bridge/octopush-bridge.cjs` (dependency-injected tick), `bridge/run.cjs` (Railway runner, env only,
+dry run unless `BRIDGE_LIVE=1`, retired v3 addresses refused), `bridge/abi.cjs`.
+
+Tests: `tests-v02/test/BridgeWorker.cjs`, 9 tests against the real contracts (EAS, PIE core, Path
+registry, `XPAttestationResolverV02`, Registry, EffectiveTierGate, TierProgression; the reviewer earns
+Tier 1 through `TierProgressionV01`) and a mock of the OctoPush L3 API signed by a test issuer:
+- valid event → attested with the +20% Reformer bonus, PENDING;
+- forged issuer signature → rejected, nothing on chain;
+- Tier 0 reviewer and author without a PIE identity → rejected;
+- daily cap → `resolver:LimitReached`;
+- lost report → recovered with the existing UID, never attested twice;
+- deleted source → EAS revocation, grant REVOKED, reported once;
+- dry run → no transaction, no report;
+- wrong token, missing issuer address, missing `deployBlock` → refused;
+- runner ABIs match the compiled contracts.
+
+Full suite: 76 passing.
+
+Mutation gate: 8 of 9 killed. The survivor ("5xx not treated as transient") is equivalent: both paths
+leave the event unreported, so the lease expires and it is retried.
+
+Observation on OctoPush L3: `gflo_report_outbox_result` does not check `lease_token`, so a late report
+from an expired lease is accepted. That is harmless with one worker; add the token check before
+running several workers.
