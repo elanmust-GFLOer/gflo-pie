@@ -1,6 +1,6 @@
 # DESIGN-005 — OctoPush ⇄ GFLO bridge (DESIGN-004 §7.2)
 
-Date: 2026-11-19 · Status: **design**, nothing implemented. Lovable task prompts:
+Date: 2026-11-19 · Status: **L1–L3 implemented in OctoPush (migrations checked in, not applied)**; L0 apply, L4 and the GFLO bridge worker open. Lovable task prompts:
 `docs/octopush-bridge/LOVABLE-PROMPTS.hu.md`.
 
 ## 0. Goal and boundaries
@@ -168,3 +168,16 @@ no defaults, and the retired v3 addresses are refused (same blocklist as `gflo-f
 | L4 earned plan read + UI (behind env, off until deploy) | Lovable | L1 |
 | G1 bridge worker + keeper as Railway workers | GFLO | L3, contracts deployed |
 | C deploy contracts on Base Sepolia, pilot with 5–20 members | both | all above |
+
+## 10. Implementation status (OctoPush, Lovable project `fafc7193…`)
+
+| Step | OctoPush commit | Tests | Review notes |
+|---|---|---|---|
+| L1 wallet link | `665fdf8` | 18 | SIWE + EIP-712 consent, EOA only, epoch revocation, one address per profile |
+| L1 fix | `cb750c2` | 27 total | SIWE domain from `GFLO_SIWE_DOMAIN` (fail closed, no Host header); 5 challenges / 10 min counted in Postgres under the epoch lock; nonce without `0x` in SIWE, with `0x` in consent |
+| L2 outbox | `7c17f0e` | +14 | `AFTER INSERT` trigger on accepted reviews (L0 file untouched), pair lock for the 3 / 7-day cap, eligibility recorded, issuer signs after commit, write-once signature |
+| L2 fixes + L3 bridge API | `6c73277` | DB 18 (9 new), bridge 7, issuer 2 | Issuer key must derive `GFLO_ISSUER_ADDRESS`; outbox row survives source deletion (`ON DELETE SET NULL`, `source_deleted`, `source_deleted_at`); `/api/public/gflo/outbox/{lease,{id}/result,revocations/lease,{id}/revocation-result}`, Bearer `GFLO_BRIDGE_TOKEN` (503 if unset, constant-time), DB rate limit, `SKIP LOCKED` leases with author-wallet recheck, idempotent results (409 on conflict) |
+
+Owner actions done: secrets `GFLO_SIWE_DOMAIN`, `GFLO_ISSUER_PRIVATE_KEY`, `GFLO_ISSUER_ADDRESS`,
+`GFLO_BRIDGE_TOKEN`. Open: apply migrations L0 → L1 → L2 (owner approval), L4 earned plan, `failed`
+row retry, GFLO bridge worker (G1) and contract deployment (Phase C).
