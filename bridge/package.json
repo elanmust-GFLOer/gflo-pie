@@ -1,0 +1,10 @@
+{
+  "name": "gflo-octopush-bridge",
+  "private": true,
+  "version": "0.1.0",
+  "description": "GFLO <-> OctoPush bridge worker (DESIGN-005). Runs DRY RUN unless BRIDGE_LIVE=1.",
+  "main": "run.cjs",
+  "scripts": { "start": "node run.cjs" },
+  "engines": { "node": ">=22" },
+  "dependencies": { "ethers": "6.15.0" }
+}

@@ -63,4 +63,5 @@ This is the **single canonical repository** of GFLO.
 - `docs/`: decisions, audits and evidence
 - `integration/octo-pie/`: OctoPush × OctoPartnR integration design and RED TEAM 6 archive (imported from `GFLO.Octo_PIE-cookR`)
 - [`gflo-backend`](https://github.com/elanmust-GFLOer/gflo-backend): live HTTP API (separate until its Railway source is moved)
+- `bridge/`: GFLO ⇄ OctoPush bridge worker (DESIGN-005); `keeper/`: ERC-8004 keeper (DESIGN-003)
 - Archived: `GasFeeLoop-` (legacy v3), `gflo-clean` (early prototype), `GFLO.Octo_PIE-cookR`

@@ -11,6 +11,7 @@
 //      report a `flipback` alert so governance can suspend the agent (not repeated once suspended).
 //   2. Unpublish: retract every live ERC-8004 entry whose grant is no longer eligible.
 //   3. Publish: mirror every finalized, eligible grant into ERC-8004.
+//   4. Finalize: move pending agent grants to VALID once their challenge period is over.
 // Every on-chain step is simulated with staticCall first; dryRun never sends a transaction.
 
 const AGENT_WALLET_KEY = "agentWallet";
@@ -108,6 +109,16 @@ async function tick({ identity, binding, agentXP, publisher, deployBlock, toBloc
   for (const ev of await agentXP.queryFilter(agentXP.filters.GrantFinalized(), fromBlock, toBlock)) {
     const uid = ev.args.uid;
     if (await publisher.canPublish(uid)) await send(publisher, "publish", [uid], { type: "publish", uid, agentId: ev.args.agentId });
+  }
+  // 4. Finalize pending agent grants after the challenge period (finalize() is permissionless).
+  //    Runs last, so a grant finalized now is published on the next tick.
+  const provider = identity.runner.provider ?? identity.runner;
+  const now = BigInt((await provider.getBlock("latest")).timestamp);
+  for (const ev of await agentXP.queryFilter(agentXP.filters.GrantPending(), fromBlock, toBlock)) {
+    const uid = ev.args.uid;
+    const g = await agentXP.grants(uid);
+    if (BigInt(g.status) !== 1n || now < BigInt(g.finalizesAt)) continue;
+    await send(agentXP, "finalize", [uid], { type: "finalize", uid });
   }
   return actions;
 }
