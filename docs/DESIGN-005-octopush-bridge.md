@@ -96,6 +96,10 @@ OctoPushReviewEvent(
 
 The issuer address is published once (OctoPush README and GFLO bridge config) and is rotatable.
 
+**Pilot issuer address (Base Sepolia, chainId 84532):** `0x2A7B244810F64961301794C256D6aFD77A7bCfda`
+(generated 2026-11-20 by the owner on their own device; the private key exists only in the OctoPush
+secret `GFLO_ISSUER_PRIVATE_KEY`; it holds no funds and signs only `OctoPushReviewEvent`).
+
 ## 5. Bridge API (OctoPush server routes)
 
 Both routes are authenticated with `Authorization: Bearer <GFLO_BRIDGE_TOKEN>` (constant-time
